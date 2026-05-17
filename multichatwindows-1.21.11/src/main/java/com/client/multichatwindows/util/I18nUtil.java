@@ -1,0 +1,1 @@
+package com.client.multichatwindows.util; import net.minecraft.text.Text; public final class I18nUtil { private I18nUtil(){} public static Text tKeyOrLiteral(String s){if(s==null)return Text.empty(); return s.startsWith("multichatwindows.")?Text.translatable(s):Text.literal(s);} }
