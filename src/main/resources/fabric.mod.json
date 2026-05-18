@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "id": "multichatwindows",
+  "version": "${version}",
+  "name": "Multi Chat Windows",
+  "description": "Client-side multiple chat windows with server based configuration and Mod Menu UI.",
+  "authors": [
+    "Jay"
+  ],
+  "license": "MIT",
+  "icon": "assets/multichatwindows/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "main": [
+      "com.client.multichatwindows.MultiChatWindows"
+    ],
+    "client": [
+      "com.client.multichatwindows.MultiChatWindowsClient"
+    ],
+    "modmenu": [
+      "com.client.multichatwindows.config.ModMenuEntry"
+    ]
+  },
+  "mixins": [
+    "multichatwindows.client.mixins.json"
+  ],
+  "depends": {
+    "minecraft": "${minecraft_version}",
+    "fabricloader": ">=${loader_version}",
+    "fabric-api": "*",
+    "modmenu": "*"
+  }
+}

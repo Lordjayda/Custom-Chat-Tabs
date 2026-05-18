@@ -1,0 +1,15 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.client.multichatwindows.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "refmap": "multichatwindows.refmap.json",
+  "client": [
+    "client.MessageHandlerMixin",
+    "client.ScreenScrollMixin",
+    "client.ChatScreenCloseMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
