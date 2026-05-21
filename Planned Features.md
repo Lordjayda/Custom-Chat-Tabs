@@ -1,7 +1,8 @@
 **Planned Features:
 
 -Notifications
--Chat filtering**
+-Chat filtering
+-maybe translation
 
----
+
 
