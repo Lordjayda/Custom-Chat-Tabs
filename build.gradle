@@ -1,44 +1,97 @@
 plugins {
     id 'fabric-loom' version '1.15.5'
+    id 'maven-publish'
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+    archivesName = project.archives_base_name
 }
 
 repositories {
     mavenCentral()
-    maven { url 'https://maven.fabricmc.net/' }
-    maven { url 'https://maven.terraformersmc.com/releases/' }
-    // Cloth Config is published on the Architectury Maven
-    maven { url 'https://maven.architectury.dev/' }
+
+    maven {
+        name = "Fabric"
+        url = "https://maven.fabricmc.net/"
+    }
+
+    maven {
+        name = "TerraformersMC"
+        url = "https://maven.terraformersmc.com/releases/"
+    }
+
+    maven {
+        name = "Architectury"
+        url = "https://maven.architectury.dev/"
+    }
 }
 
 dependencies {
-    minecraft "com.mojang:minecraft:1.21.11"
-    mappings "net.fabricmc:yarn:1.21.11+build.1:v2"
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
 
-    modImplementation "net.fabricmc:fabric-loader:0.19.2"
-    modImplementation "net.fabricmc.fabric-api:fabric-api:0.141.4+1.21.11"
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 
-    modImplementation "com.terraformersmc:modmenu:17.0.0"
+    modImplementation "com.terraformersmc:modmenu:${project.modmenu_version}"
+    modImplementation "me.shedaniel.cloth:cloth-config-fabric:${project.cloth_config_version}"
+}
 
-    // Required for the Mod Menu config screen (Cloth Config API)
-    modImplementation "me.shedaniel.cloth:cloth-config-fabric:21.11.153"
+processResources {
+    inputs.property "version", project.version
+    inputs.property "mod_id", project.mod_id
+    inputs.property "mod_name", project.mod_name
+
+    filesMatching("fabric.mod.json") {
+        expand(
+                "version": project.version,
+                "mod_id": project.mod_id,
+                "mod_name": project.mod_name
+        )
+    }
 }
 
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(21)
     }
+
+    withSourcesJar()
+
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
 }
 
 tasks.withType(JavaCompile).configureEach {
+    it.options.encoding = "UTF-8"
     it.options.release = 21
 }
-loom {
-    mixin {
-        defaultRefmapName = "multichatwindows.refmap.json"
+
+jar {
+    from("LICENSE") {
+        rename { "${it}_${project.archives_base_name}" }
     }
 }
-version = project.mod_version
 
-base {
-    archivesName = project.archives_base_name
+remapJar {
+    archiveClassifier = ""
+}
+
+remapSourcesJar {
+    archiveClassifier = "sources"
+}
+
+publishing {
+    publications {
+        create("mavenJava", MavenPublication) {
+            artifactId = project.archives_base_name
+            from components.java
+        }
+    }
+
+    repositories {
+    }
 }
