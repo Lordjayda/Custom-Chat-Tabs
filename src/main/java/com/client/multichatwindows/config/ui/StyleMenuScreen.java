@@ -10,14 +10,11 @@ import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.text.Text;
 
 public class StyleMenuScreen extends ScrollableDarkScreen {
-
     private final Screen parent;
     private final String serverKey;
     private final int tabIndex;
-
     private ServerConfig sc;
     private TabConfig tab;
-
     private TextFieldWidget xField;
     private TextFieldWidget yField;
     private TextFieldWidget wField;
@@ -34,7 +31,6 @@ public class StyleMenuScreen extends ScrollableDarkScreen {
     @Override
     protected void init() {
         clearChildren();
-
         sc = ConfigManager.getOrCreateServer(serverKey);
         tab = (tabIndex >= 0 && tabIndex < sc.tabs.size()) ? sc.tabs.get(tabIndex) : null;
 
@@ -67,7 +63,6 @@ public class StyleMenuScreen extends ScrollableDarkScreen {
                     init();
                 }
         ));
-
         y += 28;
 
         if (tab.useVanilla) {
@@ -79,29 +74,28 @@ public class StyleMenuScreen extends ScrollableDarkScreen {
 
         xField = field(left, y, 100, "multichatwindows.style.x", tab.x);
         yField = field(right, y, 100, "multichatwindows.style.y", tab.y);
-
         y += 24;
 
         wField = field(left, y, 100, "multichatwindows.style.w", tab.width);
         hField = field(right, y, 100, "multichatwindows.style.h", tab.height);
-
         y += 24;
 
         opField = field(left, y, 100, "multichatwindows.style.opacity", tab.opacity);
-
         addDrawableChild(new DarkButton(
                 right,
                 y,
                 100,
                 20,
-                Text.literal("Textgröße: " + Math.round(tab.textScale * 100.0f) + "%"),
+                Text.translatable(
+                        "multichatwindows.style.text_scale.value",
+                        Text.literal(Math.round(tab.textScale * 100.0f) + "%")
+                ),
                 () -> {
                     tab.textScale = nextTextScale(tab.textScale);
                     ConfigManager.saveServer(serverKey, sc);
                     init();
                 }
         ));
-
         y += 28;
 
         addDrawableChild(new DarkButton(
@@ -112,7 +106,6 @@ public class StyleMenuScreen extends ScrollableDarkScreen {
                 Text.translatable("multichatwindows.outline.open"),
                 () -> MinecraftClient.getInstance().setScreen(new OutlineMenuScreen(this, serverKey, tabIndex))
         ));
-
         addDrawableChild(new DarkButton(
                 right,
                 y,
@@ -121,11 +114,9 @@ public class StyleMenuScreen extends ScrollableDarkScreen {
                 Text.translatable("multichatwindows.style.edit_pos_size"),
                 () -> MinecraftClient.getInstance().setScreen(new RealTimeEditorScreen(this, serverKey, tabIndex))
         ));
-
         y += 28;
 
         boolean editable = !tab.useVanilla;
-
         xField.setEditable(editable);
         yField.setEditable(editable);
         wField.setEditable(editable);
@@ -144,7 +135,6 @@ public class StyleMenuScreen extends ScrollableDarkScreen {
                     MinecraftClient.getInstance().setScreen(parent);
                 }
         ));
-
         addDrawableChild(new DarkButton(
                 cx - 104,
                 height - 28,
@@ -164,10 +154,8 @@ public class StyleMenuScreen extends ScrollableDarkScreen {
                 20,
                 Text.translatable(key)
         );
-
         tf.setText(String.valueOf(value));
         addDrawableChild(tf);
-
         return tf;
     }
 
@@ -180,35 +168,28 @@ public class StyleMenuScreen extends ScrollableDarkScreen {
                 20,
                 Text.translatable(key)
         );
-
         tf.setText(String.valueOf(value));
         addDrawableChild(tf);
-
         return tf;
     }
 
     private void apply() {
         if (tab == null || tab.useVanilla) return;
-
         tab.x = parseInt(xField.getText(), tab.x);
         tab.y = parseInt(yField.getText(), tab.y);
-
         tab.width = Math.max(60, parseInt(wField.getText(), tab.width));
         tab.height = Math.max(40, parseInt(hField.getText(), tab.height));
-
         tab.opacity = Math.max(0.0f, Math.min(1.0f, parseFloat(opField.getText(), tab.opacity)));
         tab.textScale = Math.max(0.5f, Math.min(3.0f, tab.textScale));
     }
 
     private static float nextTextScale(float current) {
         float c = Math.round(current * 100.0f) / 100.0f;
-
         if (c < 0.75f) return 0.75f;
         if (c < 1.00f) return 1.00f;
         if (c < 1.25f) return 1.25f;
         if (c < 1.50f) return 1.50f;
         if (c < 2.00f) return 2.00f;
-
         return 0.50f;
     }
 
@@ -231,7 +212,6 @@ public class StyleMenuScreen extends ScrollableDarkScreen {
     @Override
     public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
         super.render(ctx, mouseX, mouseY, delta);
-
         ctx.drawCenteredTextWithShadow(
                 textRenderer,
                 Text.translatable("multichatwindows.style.menu"),
