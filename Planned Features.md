@@ -1,7 +1,4 @@
 **Planned Features:
 
--maybe translation
--stacking for msg
--copy improvement
-
-
+- maybe more translations
+- adavnced notifications, maybe custom sounds
