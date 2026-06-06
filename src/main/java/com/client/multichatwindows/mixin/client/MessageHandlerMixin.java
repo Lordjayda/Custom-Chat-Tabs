@@ -17,6 +17,10 @@ public class MessageHandlerMixin {
         if (overlay) {
             return;
         }
+        if (!WindowService.isGloballyEnabled()) {
+            WindowService.captureWhileDisabled(message);
+            return;
+        }
         if (WindowService.routeIncoming(message)) {
             ci.cancel();
         }
@@ -24,6 +28,10 @@ public class MessageHandlerMixin {
 
     @Inject(method = "addToChatLog(Lnet/minecraft/text/Text;Ljava/time/Instant;)V", at = @At("HEAD"), cancellable = true, require = 0)
     private void mcw$addToChatLog(Text message, Instant timestamp, CallbackInfo ci) {
+        if (!WindowService.isGloballyEnabled()) {
+            WindowService.captureWhileDisabled(message);
+            return;
+        }
         if (WindowService.routeIncoming(message)) {
             ci.cancel();
         }

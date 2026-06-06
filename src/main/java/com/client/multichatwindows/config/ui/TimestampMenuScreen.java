@@ -18,7 +18,7 @@ public class TimestampMenuScreen extends ScrollableDarkScreen {
     private TextFieldWidget colorField;
 
     public TimestampMenuScreen(Screen parent, String serverKey) {
-        super(Text.literal("Timestamp Style"));
+        super(Text.translatable("multichatwindows.timestamp.title"));
         this.parent = parent;
         this.serverKey = serverKey;
     }
@@ -43,7 +43,7 @@ public class TimestampMenuScreen extends ScrollableDarkScreen {
                 y,
                 200,
                 20,
-                Text.literal("Timestamps: " + (sc.timestampsEnabled ? "ON" : "OFF")),
+                Text.translatable(sc.timestampsEnabled ? "multichatwindows.timestamp.enabled.on" : "multichatwindows.timestamp.enabled.off"),
                 () -> {
                     sc.timestampsEnabled = !sc.timestampsEnabled;
                     save();
@@ -59,7 +59,7 @@ public class TimestampMenuScreen extends ScrollableDarkScreen {
                 y,
                 200,
                 20,
-                Text.literal("Timestamp Format")
+                Text.translatable("multichatwindows.timestamp.format")
         );
         formatField.setText(sc.timestampFormat == null ? "HH:mm" : sc.timestampFormat);
         formatField.setChangedListener(s -> {
@@ -76,7 +76,7 @@ public class TimestampMenuScreen extends ScrollableDarkScreen {
                 y,
                 200,
                 20,
-                Text.literal("Timestamp Hex Color")
+                Text.translatable("multichatwindows.timestamp.color")
         );
         colorField.setText(sc.timestampColor == null ? "AAAAAA" : sc.timestampColor);
         colorField.setChangedListener(s -> {
@@ -85,21 +85,7 @@ public class TimestampMenuScreen extends ScrollableDarkScreen {
         });
         addDrawableChild(colorField);
 
-        addDrawableChild(new DarkButton(
-                cx - 100,
-                height - 54,
-                200,
-                20,
-                Text.translatable("multichatwindows.save"),
-                () -> {
-                    sc.timestampFormat = formatField.getText() == null || formatField.getText().isBlank()
-                            ? "HH:mm"
-                            : formatField.getText().trim();
-                    sc.timestampColor = sanitizeHex(colorField.getText());
-                    save();
-                    MinecraftClient.getInstance().setScreen(parent);
-                }
-        ));
+        
 
         addDrawableChild(new DarkButton(
                 cx - 100,
@@ -144,7 +130,7 @@ public class TimestampMenuScreen extends ScrollableDarkScreen {
 
         ctx.drawCenteredTextWithShadow(
                 textRenderer,
-                Text.literal("Timestamp Style"),
+                Text.translatable("multichatwindows.timestamp.title"),
                 width / 2,
                 14,
                 0xFFFFFFFF

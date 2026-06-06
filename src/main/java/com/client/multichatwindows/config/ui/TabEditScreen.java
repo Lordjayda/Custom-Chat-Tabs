@@ -62,6 +62,14 @@ public class TabEditScreen extends ScrollableDarkScreen {
 
         nameField.setText(tab.name);
         nameField.setEditable(!isAll);
+        nameField.setChangedListener(value -> {
+            if (!isAll) {
+                tab.name = value == null || value.isBlank() ? Text.translatable("multichatwindows.tab.default_name").getString() : value;
+                ConfigManager.saveServer(serverKey, sc);
+                ConfigManager.saveTab(serverKey, tab);
+                WindowService.rebuildForCurrentServer();
+            }
+        });
         addDrawableChild(nameField);
 
         y += 26;
@@ -130,25 +138,7 @@ public class TabEditScreen extends ScrollableDarkScreen {
             ));
         }
 
-        addDrawableChild(new DarkButton(
-                cx - 100,
-                height - 54,
-                200,
-                20,
-                Text.translatable("multichatwindows.save"),
-                () -> {
-                    if (!isAll) {
-                        tab.name = nameField.getText();
-                    }
-
-                    ConfigManager.saveServer(serverKey, sc);
-                    ConfigManager.saveTab(serverKey, tab);
-
-                    WindowService.rebuildForCurrentServer();
-
-                    MinecraftClient.getInstance().setScreen(parent);
-                }
-        ));
+        
 
         addDrawableChild(new DarkButton(
                 cx - 100,

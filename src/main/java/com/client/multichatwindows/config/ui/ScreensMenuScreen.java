@@ -114,7 +114,7 @@ public class ScreensMenuScreen extends ScrollableDarkScreen {
 
         addDrawableChild(new DarkButton(
                 cx - 100,
-                height - 80,
+                height - 54,
                 BTN_W,
                 20,
                 Text.translatable("multichatwindows.screens.add"),
@@ -124,6 +124,11 @@ public class ScreensMenuScreen extends ScrollableDarkScreen {
                     t.name = nextNewScreenName(sc);
                     t.enabled = true;
                     t.useVanilla = false;
+                    t.x = 0;
+                    t.y = 5;
+                    t.width = 220;
+                    t.height = 96;
+                    t.opacity = 0.45f;
                     sc.tabs.add(t);
 
                     ConfigManager.saveServer(serverKey, sc);
@@ -132,18 +137,7 @@ public class ScreensMenuScreen extends ScrollableDarkScreen {
                 }
         ));
 
-        addDrawableChild(new DarkButton(
-                cx - 100,
-                height - 54,
-                BTN_W,
-                20,
-                Text.translatable("multichatwindows.save"),
-                () -> {
-                    ConfigManager.saveServer(serverKey, sc);
-                    WindowService.rebuildForCurrentServer();
-                    MinecraftClient.getInstance().setScreen(parent);
-                }
-        ));
+        
 
         addDrawableChild(new DarkButton(
                 cx - 100,

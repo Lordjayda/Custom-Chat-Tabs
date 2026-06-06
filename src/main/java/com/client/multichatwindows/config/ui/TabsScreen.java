@@ -53,15 +53,7 @@ public class TabsScreen extends ScrollableDarkScreen {
                 () -> MinecraftClient.getInstance().setScreen(new TimestampMenuScreen(this, serverKey))
         ));
 
-        addDrawableChild(new DarkButton(
-                cx - 110, height - 54, 220, 20,
-                Text.translatable("multichatwindows.save"),
-                () -> {
-                    ConfigManager.saveServer(serverKey, sc);
-                    WindowService.rebuildForCurrentServer();
-                    MinecraftClient.getInstance().setScreen(parent);
-                }
-        ));
+        
 
         addDrawableChild(new DarkButton(
                 cx - 110, height - 28, 220, 20,

@@ -33,11 +33,7 @@ public class NotificationStyleScreen extends ScrollableDarkScreen {
         });
         addDrawableChild(scaleField);
 
-        addDrawableChild(new DarkButton(centerX - 130, height - 54, 260, 20, Text.translatable("multichatwindows.save"), () -> {
-            apply(serverConfig);
-            ConfigManager.saveServer(serverKey, serverConfig);
-            MinecraftClient.getInstance().setScreen(parent);
-        }));
+        
 
         addDrawableChild(new DarkButton(centerX - 130, height - 28, 260, 20, Text.translatable("multichatwindows.back"), () -> MinecraftClient.getInstance().setScreen(parent)));
     }

@@ -50,20 +50,8 @@ public class StyleMenuScreen extends ScrollableDarkScreen {
             return;
         }
 
-        addDrawableChild(new DarkButton(
-                cx - 104,
-                y,
-                208,
-                20,
-                Text.translatable(tab.useVanilla
-                        ? "multichatwindows.vanilla.on"
-                        : "multichatwindows.vanilla.off"),
-                () -> {
-                    tab.useVanilla = !tab.useVanilla;
-                    ConfigManager.saveServer(serverKey, sc);
-                    init();
-                }
-        ));
+        
+
         y += 28;
 
         if (tab.useVanilla) {
@@ -111,18 +99,7 @@ public class StyleMenuScreen extends ScrollableDarkScreen {
         opField.setEditable(editable);
         textScaleField.setEditable(editable);
 
-        addDrawableChild(new DarkButton(
-                cx - 104,
-                height - 54,
-                208,
-                20,
-                Text.translatable("multichatwindows.save"),
-                () -> {
-                    apply();
-                    ConfigManager.saveServer(serverKey, sc);
-                    MinecraftClient.getInstance().setScreen(parent);
-                }
-        ));
+        
         addDrawableChild(new DarkButton(
                 cx - 104,
                 height - 28,

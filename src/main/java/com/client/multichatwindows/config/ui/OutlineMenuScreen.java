@@ -101,18 +101,7 @@ public class OutlineMenuScreen extends ScrollableDarkScreen {
 
         addDrawableChild(colorField);
 
-        addDrawableChild(new DarkButton(
-                cx - 100,
-                height - 54,
-                200,
-                20,
-                Text.translatable("multichatwindows.save"),
-                () -> {
-                    tab.outlineColor = sanitizeHex(colorField.getText());
-                    save();
-                    MinecraftClient.getInstance().setScreen(parent);
-                }
-        ));
+        
 
         addDrawableChild(new DarkButton(
                 cx - 100,

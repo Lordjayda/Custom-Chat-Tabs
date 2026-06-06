@@ -50,10 +50,7 @@ public class NotificationEditScreen extends ScrollableDarkScreen {
                 MinecraftClient.getInstance().setScreen(new ScreenSelectionScreen(this, serverKey, notificationIndex))
         ));
 
-        addDrawableChild(new DarkButton(centerX - 120, height - 54, 240, 20, Text.translatable("multichatwindows.save"), () -> {
-            ConfigManager.saveServer(serverKey, serverConfig);
-            MinecraftClient.getInstance().setScreen(parent);
-        }));
+        
 
         addBackButton();
     }

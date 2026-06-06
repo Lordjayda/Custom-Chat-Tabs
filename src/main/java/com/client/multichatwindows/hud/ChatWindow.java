@@ -89,23 +89,22 @@ public class ChatWindow {
 
         if (!entries.isEmpty() && equalsSafe(lastStackKey, effectiveStackKey)) {
             Entry last = entries.get(entries.size() - 1);
-            if (isStackEntryStillRendered(last, now)) {
-                last.repeatCount++;
+            last.repeatCount++;
 
-                // Do not refresh createdAtMs here.
-                // A stacked repeat should update the original chat line in-place,
-                // not behave like a newly received visible/timestamped line.
-                rebuildRenderedLines();
-                restoreScrollAfterAppend(previousRowCount, preserveScrolledView);
+            // Keep the newest visible message text for stacked repeats.
+            // The stack key ignores leading timestamps, but the rendered entry should
+            // use the latest message text/timestamp, e.g. "16:32 hi" + "16:33 hi"
+            // becomes "16:33 hi (*2)" and then "16:33 hi (*3)".
+            last.original = msg.copy();
+            last.createdAtMs = now;
 
-                // Keep the original entry text unchanged. This is important for timestamps:
-                // the green stack suffix is appended to the original message, but the suffix itself
-                // never receives a new timestamp when repeated messages arrive later.
-                lastOriginalMessage = msg.copy();
-                lastSender = sender;
-                lastStackKey = effectiveStackKey;
-                return;
-            }
+            rebuildRenderedLines();
+            restoreScrollAfterAppend(previousRowCount, preserveScrolledView);
+
+            lastOriginalMessage = msg.copy();
+            lastSender = sender;
+            lastStackKey = effectiveStackKey;
+            return;
         }
 
         entries.add(new Entry(msg.copy(), 1, now));
@@ -1045,7 +1044,7 @@ public class ChatWindow {
     }
 
     public static final class Entry {
-        public final Text original;
+        public Text original;
         public int repeatCount;
         public long createdAtMs;
 

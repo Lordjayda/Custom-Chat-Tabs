@@ -144,17 +144,7 @@ public class ChatFiltersScreen extends ScrollableDarkScreen {
                 }
         ));
 
-        addDrawableChild(new DarkButton(
-                cx - 100,
-                height - 54,
-                200,
-                20,
-                Text.translatable("multichatwindows.save"),
-                () -> {
-                    ConfigManager.saveServer(serverKey, sc);
-                    MinecraftClient.getInstance().setScreen(parent);
-                }
-        ));
+        
 
         addDrawableChild(new DarkButton(
                 cx - 100,

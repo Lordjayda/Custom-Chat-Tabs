@@ -71,12 +71,7 @@ public class NotificationBasicsScreen extends ScrollableDarkScreen {
             init();
         }));
 
-        addDrawableChild(new DarkButton(centerX - 120, height - 54, 240, 20, Text.translatable("multichatwindows.save"), () -> {
-            notification.keyword = keywordField.getText();
-            notification.anyMessage = notification.keyword == null || notification.keyword.isBlank();
-            ConfigManager.saveServer(serverKey, serverConfig);
-            MinecraftClient.getInstance().setScreen(parent);
-        }));
+        
 
         addBackButton();
     }

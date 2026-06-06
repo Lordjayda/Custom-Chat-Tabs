@@ -19,16 +19,93 @@ import net.minecraft.text.Text;
 
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public final class WindowService {
     private static final Map<String, ChatWindow> WINDOWS = new LinkedHashMap<>();
+    private static final int DISABLED_BACKLOG_LIMIT = 10000;
+    private static final List<Text> DISABLED_BACKLOG = new ArrayList<>();
+    private static final Set<Text> DISABLED_BACKLOG_IDENTITIES = Collections.newSetFromMap(new IdentityHashMap<>());
     private static String lastServerKey = "";
 
     private WindowService() {
+    }
+
+    public static boolean isGloballyEnabled() {
+        return ConfigManager.global().enabled;
+    }
+
+    public static void captureWhileDisabled(Text message) {
+        if (message == null || isGloballyEnabled()) {
+            return;
+        }
+
+        synchronized (DISABLED_BACKLOG) {
+            if (!DISABLED_BACKLOG_IDENTITIES.add(message)) {
+                return;
+            }
+
+            DISABLED_BACKLOG.add(message.copy());
+            while (DISABLED_BACKLOG.size() > DISABLED_BACKLOG_LIMIT) {
+                DISABLED_BACKLOG.remove(0);
+            }
+        }
+    }
+
+    public static void importDisabledBacklogAndClearVanillaChat() {
+        List<Text> pending;
+        synchronized (DISABLED_BACKLOG) {
+            if (DISABLED_BACKLOG.isEmpty()) {
+                clearVanillaChatMessages();
+                return;
+            }
+
+            pending = new ArrayList<>(DISABLED_BACKLOG);
+            DISABLED_BACKLOG.clear();
+            DISABLED_BACKLOG_IDENTITIES.clear();
+        }
+
+        for (Text message : pending) {
+            routeIncoming(message, false);
+        }
+
+        clearVanillaChatMessages();
+    }
+
+    public static void clearVanillaChatMessages() {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client == null || client.inGameHud == null || client.inGameHud.getChatHud() == null) {
+            return;
+        }
+
+        Object chatHud = client.inGameHud.getChatHud();
+        for (Method method : chatHud.getClass().getDeclaredMethods()) {
+            if (!"clear".equals(method.getName())) {
+                continue;
+            }
+            try {
+                method.setAccessible(true);
+                Class<?>[] parameterTypes = method.getParameterTypes();
+                if (parameterTypes.length == 1 && parameterTypes[0] == boolean.class) {
+                    method.invoke(chatHud, false);
+                    return;
+                }
+                if (parameterTypes.length == 0) {
+                    method.invoke(chatHud);
+                    return;
+                }
+            } catch (ReflectiveOperationException ignored) {
+                // Try the next clear overload.
+            }
+        }
     }
 
     public static Collection<ChatWindow> allWindows() {
@@ -139,12 +216,13 @@ public final class WindowService {
         String serverKey = currentServerKey();
         ServerConfig serverConfig = ConfigManager.getOrCreateServer(serverKey);
         String plain = message == null ? "" : message.getString();
+        String stackKey = stackKeyFor(false, plain);
         ChatWindow window = WINDOWS.get(screenId);
         if (window == null) {
             window = WINDOWS.get("all");
         }
         if (window != null) {
-            window.push(withTimestamp(serverConfig, message), plain);
+            window.push(withTimestamp(serverConfig, message), stackKey);
             notifyIfConfigured(serverKey, screenId, window.displayName, plain);
         }
     }
@@ -205,7 +283,7 @@ public final class WindowService {
         ServerConfig serverConfig = ConfigManager.getOrCreateServer(serverKey);
         String player = guessPlayerName(plain);
         boolean serverMessage = isUnfilterableServerMessage(plain);
-        String stackKey = serverMessage ? "server:" + plain : plain;
+        String stackKey = stackKeyFor(serverMessage, plain);
 
         boolean filterMatch = false;
         String filterReason = "";
@@ -274,6 +352,45 @@ public final class WindowService {
         }
 
         return true;
+    }
+
+    private static String stackKeyFor(boolean serverMessage, String plain) {
+        String normalized = stripLeadingTimestampForStacking(plain == null ? "" : plain);
+        return serverMessage ? "server:" + normalized : normalized;
+    }
+
+    private static String stripLeadingTimestampForStacking(String plain) {
+        if (plain == null || plain.isBlank()) {
+            return plain == null ? "" : plain;
+        }
+
+        String normalized = plain.trim();
+        boolean changed;
+        do {
+            changed = false;
+
+            String next = normalized.replaceFirst("^\\[[^\\]]{1,16}\\]\\s*", "");
+            if (!next.equals(normalized)) {
+                normalized = next.trim();
+                changed = true;
+                continue;
+            }
+
+            next = normalized.replaceFirst("^\\([^\\)]{1,16}\\)\\s*", "");
+            if (!next.equals(normalized)) {
+                normalized = next.trim();
+                changed = true;
+                continue;
+            }
+
+            next = normalized.replaceFirst("^(?:\\d{1,2}:\\d{2}(?::\\d{2})?|\\d{1,2}\\.\\d{2}(?:\\.\\d{2})?)(?:\\s*[AP]M)?\\s*[-|>]*\\s*", "");
+            if (!next.equals(normalized)) {
+                normalized = next.trim();
+                changed = true;
+            }
+        } while (changed);
+
+        return normalized;
     }
 
     private static boolean isUnfilterableServerMessage(String plain) {

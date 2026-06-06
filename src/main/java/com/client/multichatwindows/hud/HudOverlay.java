@@ -1,5 +1,6 @@
 package com.client.multichatwindows.hud;
 
+import com.client.multichatwindows.config.ConfigManager;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
@@ -24,6 +25,7 @@ public final class HudOverlay {
         MinecraftClient mc = MinecraftClient.getInstance();
 
         if (mc.player == null || mc.options.hudHidden) return;
+        if (!ConfigManager.global().enabled) return;
 
         TextRenderer tr = mc.textRenderer;
 
