@@ -153,11 +153,5 @@
   "key.multichatwindows.notification_history": "Open Notification History",
   "category.multichatwindows": "Multi Chat Windows",
   "category.multichatwindows.main": "Multi Chat Windows",
-  "multichatwindows.tooltip.input.autosave": "%s",
-  "multichatwindows.tooltip.input.field": "%s",
-  "multichatwindows.timestamp.title": "Timestamp Style",
-  "multichatwindows.timestamp.enabled.on": "Timestamps: ON",
-  "multichatwindows.timestamp.enabled.off": "Timestamps: OFF",
-  "multichatwindows.timestamp.format": "Timestamp Format",
-  "multichatwindows.timestamp.color": "Timestamp Hex Color"
+  "multichatwindows.tooltip.input.autosave": "%s — saves automatically when you click away or press Esc."
 }

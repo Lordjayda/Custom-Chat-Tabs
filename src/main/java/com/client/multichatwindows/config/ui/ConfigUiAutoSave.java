@@ -62,7 +62,7 @@ public final class ConfigUiAutoSave {
         Text fieldLabel = hovered.getMessage();
         context.drawTooltip(
                 client.textRenderer,
-                Text.translatable("multichatwindows.tooltip.input.field", fieldLabel),
+                Text.translatable("multichatwindows.tooltip.input.autosave", fieldLabel),
                 mouseX,
                 mouseY
         );
@@ -73,7 +73,7 @@ public final class ConfigUiAutoSave {
         while (type != null) {
             for (Method method : type.getDeclaredMethods()) {
                 String name = method.getName();
-                if (!"apply".equals(name) && !"liveApply".equals(name) && !"save".equals(name)) {
+                if (!"apply".equals(name) && !"liveApply".equals(name)) {
                     continue;
                 }
                 try {

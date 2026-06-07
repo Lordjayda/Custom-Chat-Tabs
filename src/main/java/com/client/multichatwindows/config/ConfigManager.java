@@ -235,6 +235,7 @@ public final class ConfigManager {
                     t.name = "multichatwindows.all_tab";
                 }
 
+                t.useVanilla = false;
                 t.filterAllChat = false;
 
                 if (t.dependencies != null) {
@@ -249,7 +250,7 @@ public final class ConfigManager {
         all.id = "all";
         all.name = "multichatwindows.all_tab";
         all.enabled = true;
-        all.useVanilla = true;
+        all.useVanilla = false;
         all.filterAllChat = false;
 
         sc.tabs.add(0, all);

@@ -153,11 +153,5 @@
   "key.multichatwindows.notification_history": "Notification-Verlauf öffnen",
   "category.multichatwindows": "Multi Chat Windows",
   "category.multichatwindows.main": "Multi Chat Windows",
-  "multichatwindows.tooltip.input.autosave": "%s",
-  "multichatwindows.tooltip.input.field": "%s",
-  "multichatwindows.timestamp.title": "Zeitstempel-Stil",
-  "multichatwindows.timestamp.enabled.on": "Zeitstempel: AN",
-  "multichatwindows.timestamp.enabled.off": "Zeitstempel: AUS",
-  "multichatwindows.timestamp.format": "Zeitstempel-Format",
-  "multichatwindows.timestamp.color": "Zeitstempel-Hexfarbe"
+  "multichatwindows.tooltip.input.autosave": "%s — speichert automatisch, sobald du wegklickst oder Esc drückst."
 }

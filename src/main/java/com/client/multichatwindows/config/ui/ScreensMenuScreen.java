@@ -114,7 +114,7 @@ public class ScreensMenuScreen extends ScrollableDarkScreen {
 
         addDrawableChild(new DarkButton(
                 cx - 100,
-                height - 54,
+                height - 80,
                 BTN_W,
                 20,
                 Text.translatable("multichatwindows.screens.add"),

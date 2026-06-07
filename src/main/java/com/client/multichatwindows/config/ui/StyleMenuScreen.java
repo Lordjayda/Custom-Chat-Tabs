@@ -50,8 +50,20 @@ public class StyleMenuScreen extends ScrollableDarkScreen {
             return;
         }
 
-        
-
+        addDrawableChild(new DarkButton(
+                cx - 104,
+                y,
+                208,
+                20,
+                Text.translatable(tab.useVanilla
+                        ? "multichatwindows.vanilla.on"
+                        : "multichatwindows.vanilla.off"),
+                () -> {
+                    tab.useVanilla = !tab.useVanilla;
+                    ConfigManager.saveServer(serverKey, sc);
+                    init();
+                }
+        ));
         y += 28;
 
         if (tab.useVanilla) {

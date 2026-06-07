@@ -18,7 +18,7 @@ public class TimestampMenuScreen extends ScrollableDarkScreen {
     private TextFieldWidget colorField;
 
     public TimestampMenuScreen(Screen parent, String serverKey) {
-        super(Text.translatable("multichatwindows.timestamp.title"));
+        super(Text.literal("Timestamp Style"));
         this.parent = parent;
         this.serverKey = serverKey;
     }
@@ -43,7 +43,7 @@ public class TimestampMenuScreen extends ScrollableDarkScreen {
                 y,
                 200,
                 20,
-                Text.translatable(sc.timestampsEnabled ? "multichatwindows.timestamp.enabled.on" : "multichatwindows.timestamp.enabled.off"),
+                Text.literal("Timestamps: " + (sc.timestampsEnabled ? "ON" : "OFF")),
                 () -> {
                     sc.timestampsEnabled = !sc.timestampsEnabled;
                     save();
@@ -59,7 +59,7 @@ public class TimestampMenuScreen extends ScrollableDarkScreen {
                 y,
                 200,
                 20,
-                Text.translatable("multichatwindows.timestamp.format")
+                Text.literal("Timestamp Format")
         );
         formatField.setText(sc.timestampFormat == null ? "HH:mm" : sc.timestampFormat);
         formatField.setChangedListener(s -> {
@@ -76,7 +76,7 @@ public class TimestampMenuScreen extends ScrollableDarkScreen {
                 y,
                 200,
                 20,
-                Text.translatable("multichatwindows.timestamp.color")
+                Text.literal("Timestamp Hex Color")
         );
         colorField.setText(sc.timestampColor == null ? "AAAAAA" : sc.timestampColor);
         colorField.setChangedListener(s -> {
@@ -130,7 +130,7 @@ public class TimestampMenuScreen extends ScrollableDarkScreen {
 
         ctx.drawCenteredTextWithShadow(
                 textRenderer,
-                Text.translatable("multichatwindows.timestamp.title"),
+                Text.literal("Timestamp Style"),
                 width / 2,
                 14,
                 0xFFFFFFFF

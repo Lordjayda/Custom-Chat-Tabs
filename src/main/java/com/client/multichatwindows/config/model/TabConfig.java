@@ -16,7 +16,7 @@ public class TabConfig {
     public float opacity = 0.8f;
     public float textScale = 1.0f;
 
-    public boolean useVanilla = true;
+    public boolean useVanilla = false;
     public boolean filterAllChat = false;
 
     public boolean outlineEnabled = false;
