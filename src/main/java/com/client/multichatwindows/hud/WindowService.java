@@ -9,6 +9,7 @@ import com.client.multichatwindows.config.model.ServerConfig;
 import com.client.multichatwindows.config.model.TabConfig;
 import com.client.multichatwindows.notification.NotificationEntry;
 import com.client.multichatwindows.notification.NotificationOverlay;
+import com.client.multichatwindows.notification.NotificationSoundPlayer;
 import com.client.multichatwindows.util.DebugLog;
 import com.client.multichatwindows.util.EventLog;
 import com.client.multichatwindows.util.I18nUtil;
@@ -474,6 +475,8 @@ public final class WindowService {
             String reason = notification.keyword != null && !notification.keyword.isBlank()
                     ? "keyword:" + notification.keyword.trim()
                     : "message";
+
+            NotificationSoundPlayer.playNotification(notification);
 
             NotificationOverlay.push(new NotificationEntry(
                     notification.id,

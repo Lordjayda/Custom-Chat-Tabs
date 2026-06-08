@@ -62,6 +62,14 @@ public class TabEditScreen extends ScrollableDarkScreen {
 
         nameField.setText(tab.name);
         nameField.setEditable(!isAll);
+        nameField.setChangedListener(value -> {
+            if (!isAll) {
+                tab.name = value == null || value.isBlank() ? Text.translatable("multichatwindows.tab.default_name").getString() : value;
+                ConfigManager.saveServer(serverKey, sc);
+                ConfigManager.saveTab(serverKey, tab);
+                WindowService.rebuildForCurrentServer();
+            }
+        });
         addDrawableChild(nameField);
 
         y += 26;
@@ -163,5 +171,22 @@ public class TabEditScreen extends ScrollableDarkScreen {
                     0xFFB0B0B0
             );
         }
+    }
+
+    private void applyNameField() {
+        if (nameField == null || tab == null || sc == null || "all".equalsIgnoreCase(tab.id)) {
+            return;
+        }
+        String value = nameField.getText();
+        tab.name = value == null || value.isBlank() ? Text.translatable("multichatwindows.tab.default_name").getString() : value;
+        ConfigManager.saveServer(serverKey, sc);
+        ConfigManager.saveTab(serverKey, tab);
+        WindowService.rebuildForCurrentServer();
+    }
+
+    @Override
+    public void removed() {
+        applyNameField();
+        super.removed();
     }
 }

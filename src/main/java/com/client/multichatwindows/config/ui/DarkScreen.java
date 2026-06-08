@@ -34,6 +34,10 @@ public class DarkScreen extends Screen {
     }
 
     protected void renderDarkBackground(DrawContext ctx) {
+        if (ConfigBackgroundRenderer.render(ctx, width, height)) {
+            return;
+        }
+
         MinecraftClient mc = MinecraftClient.getInstance();
         if (mc.getCurrentServerEntry() != null && tryRenderInGameBlur(ctx)) {
             ctx.fill(0, 0, width, height, 0x99000000);

@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
@@ -28,6 +29,46 @@ public final class ConfigManager {
 
     private static Path baseDir() {
         return FabricLoader.getInstance().getConfigDir().resolve("multichatwindows");
+    }
+
+    public static Path basePath() {
+        return baseDir();
+    }
+
+    public static Path resolveUserPath(String value) {
+        String normalized = normalizeUserPathText(value);
+        if (normalized.isBlank()) {
+            return baseDir();
+        }
+
+        try {
+            Path path = Path.of(normalized);
+            if (path.isAbsolute()) {
+                return path.normalize();
+            }
+            return baseDir().resolve(path).normalize();
+        } catch (InvalidPathException ignored) {
+            return baseDir();
+        }
+    }
+
+    public static String normalizeUserPathText(String value) {
+        if (value == null) {
+            return "";
+        }
+
+        String normalized = value.trim();
+        while (normalized.length() >= 2) {
+            char first = normalized.charAt(0);
+            char last = normalized.charAt(normalized.length() - 1);
+            if ((first == '"' && last == '"') || (first == '\'' && last == '\'')) {
+                normalized = normalized.substring(1, normalized.length() - 1).trim();
+                continue;
+            }
+            break;
+        }
+
+        return normalized;
     }
 
     private static Path globalFile() {

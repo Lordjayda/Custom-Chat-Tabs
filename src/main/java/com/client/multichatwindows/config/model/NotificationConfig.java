@@ -16,6 +16,7 @@ public class NotificationConfig {
 
     public boolean soundEnabled = true;
     public String soundName = "default_fsharp_hay";
+    public String customSoundPath = "";
     public float volume = 1.0f;
     public float pitch = 1.4142135f;
 
