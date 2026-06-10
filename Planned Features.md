@@ -1,14 +1,6 @@
 ### Planned Features:
 
 - maybe more translations
--Custom Notification Sounds
+-more mc version if you want a version create an issue
 
-Eigene Sound-Dateien für Notifications auswählen/einstellen.
-Optional später pro Regel/Tab unterschiedlich konfigurierbar.
-
-
-
--Background Image / Hintergrundbild
-
-Möglichkeit, ein eigenes Hintergrundbild für Chat-Fenster/Tabs einzustellen.
-Denkbare Optionen später: Bildpfad, Transparenz/Opacity, Skalierung, Tiling/Stretch/Cover.
+- a dev mode for kinda automaget test of features to makr finding them easier(good for testing different versions)
