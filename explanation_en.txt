@@ -1,0 +1,700 @@
+MultiChatWindows 1.5.0 – Menu Structure / UI Planning Overview
+===============================================================
+
+Purpose
+-------
+This file is meant as a planning overview. It shows where menus, submenus,
+buttons, toggles, and input fields are located. Labels may vary slightly depending
+on the active language.
+
+Legend
+------
+[Button]      clickable button / navigation / action
+[Toggle]      ON/OFF switch
+[Input]       text field or numeric field
+[List]        list of items
+[Info]        title text or informational text
+[Action]      direct action without a dedicated submenu
+
+
+1. Entry Point / Main Menu
+==========================
+
+Path:
+  ModMenu / Open Config
+  -> MultiChatWindows Main Menu
+
+1.1 MultiChatWindows Main Menu / ConfigHomeScreen
+-------------------------------------------------
+Purpose:
+  Central start page for global settings and server configuration.
+
+Elements:
+  [Toggle] MultiChatWindows: ON/OFF
+           Globally enables or disables the mod system.
+
+  [Button/Toggle] Language
+           Switches between German and English.
+           Example display: "Sprache: Deutsch" / "Language: English".
+
+  [Toggle] Automatically add server: ON/OFF
+           Controls whether new servers are automatically added to the config.
+
+  [Button] Servers / Open Servers
+           Opens the server management menu.
+           Path: Main Menu -> Servers
+
+  [Toggle] Debug: ON/OFF
+           Enables or disables debug output/debug features.
+
+  [Button] Config background image
+           Opens the menu for the config-screen background image.
+           Path: Main Menu -> Config Background Image
+
+  [Button] Back
+           Closes the config or returns to the previous screen.
+
+
+2. Server Management
+====================
+
+Path:
+  Main Menu -> Servers
+
+2.1 ServersScreen / Server List
+-------------------------------
+Purpose:
+  Selection and management of saved server configurations.
+
+Typical elements:
+  [List] Server list
+         Each saved server configuration appears as its own entry/button.
+
+  [Button] Open / edit server
+           Opens the detailed configuration for the selected server.
+
+  [Button] Add server
+           Opens a menu for manually adding a server.
+
+  [Button] Back
+           Returns to the main menu.
+
+Submenus:
+  - Edit server
+  - Add server
+
+
+2.2 AddServerScreen / Add Server
+--------------------------------
+Purpose:
+  Manually create a server key or server entry.
+
+Typical elements:
+  [Input] Server key / server address / server ID
+          Input field for the server that should be added.
+
+  [Button] Add / Save
+           Creates the server entry.
+
+  [Button] Back
+           Returns to the server list.
+
+
+2.3 Edit Server / Server Configuration
+--------------------------------------
+Purpose:
+  Central configuration area for a single server.
+
+Typical sections/buttons:
+  [Button] Tabs / Chat Windows
+           Opens the tab/window configuration.
+
+  [Button] Chat Filters
+           Opens the filter rules for this server.
+
+  [Button] Notifications
+           Opens the notification configuration for this server.
+
+  [Button] Profiles / Tab Profiles
+           Opens saved profiles for tabs/windows, if available.
+
+  [Button] Back
+           Returns to the server list.
+
+
+3. Tabs / Chat Windows
+======================
+
+Path:
+  Main Menu -> Servers -> Select Server -> Tabs / Chat Windows
+
+3.1 TabsScreen / Tab List
+-------------------------
+Purpose:
+  Manage all chat windows/tabs for a server.
+
+Typical elements:
+  [List] Tabs
+         Contains at least the "All"/default tab and custom tabs.
+
+  [Button] Open / edit tab
+           Opens the settings for a tab.
+
+  [Button] New tab
+           Creates a new custom tab.
+
+  [Button] Profiles / Tab Profiles
+           Opens profile features, if available in that screen.
+
+  [Button] Back
+           Returns to the server configuration.
+
+
+3.2 TabEditScreen / Edit Tab
+----------------------------
+Purpose:
+  Configure a single chat window/tab.
+
+Important elements:
+  [Input] Name
+          Display name of the tab.
+          Important: Custom tab names are saved.
+
+  [Toggle] Enabled
+           Enables or disables the tab.
+
+  [Toggle] Use Vanilla
+           Controls whether messages also appear in the vanilla chat.
+
+  [Input] X position
+          Horizontal position of the chat window.
+
+  [Input] Y position
+          Vertical position of the chat window.
+
+  [Input] Width
+          Width of the chat window.
+
+  [Input] Height
+          Height of the chat window.
+
+  [Input] Opacity
+          Transparency/opacity of the chat window.
+
+  [Input] Text scale
+          Scaling of the chat text.
+
+  [Toggle] Outline
+           Enables or disables the border/outline.
+
+  [Input] Outline width
+          Width of the outline.
+
+  [Input] Outline color
+          Outline color, usually as a hex color.
+
+  [Toggle] Filter All Chat
+           When enabled, matching messages can be removed from the All tab.
+
+  [Button] Dependencies / Rules
+           Opens the conditions that decide when messages are routed into this tab.
+
+  [Button] Delete
+           Removes the custom tab, unless it is a protected default tab.
+
+  [Button] Back
+           Returns to the tab list.
+
+Note:
+  The All tab is usually treated specially and not every field is freely editable.
+
+
+3.3 DependenciesScreen / Tab Conditions
+---------------------------------------
+Path:
+  Tabs -> Edit Tab -> Dependencies / Rules
+
+Purpose:
+  Defines which messages are routed into a custom tab.
+
+Typical elements:
+  [List] Conditions / dependency rules
+         List of all rules for this tab.
+
+  [Button] Add rule
+           Creates a new condition.
+
+  [Input] Player
+          Optional player name or sender match.
+
+  [Input] Keyword / text
+          Text that must appear in the message.
+
+  [Toggle] Match case
+           Controls whether capitalization must match exactly.
+
+  [Button] Delete rule
+           Removes a condition.
+
+  [Button] Back
+           Returns to the tab edit menu.
+
+
+3.4 Tab Profiles / Profiles
+---------------------------
+Path:
+  Server -> Tabs -> Profiles / Tab Profiles
+
+Purpose:
+  Save and restore tab/window layouts.
+
+Typical elements:
+  [List] Profiles
+         List of saved profiles.
+
+  [Button] Save current profile
+           Saves the current tab/window configuration as a profile.
+
+  [Button] Load / apply profile
+           Applies a saved profile.
+
+  [Button] Delete profile
+           Removes a saved profile.
+
+  [Input] Profile name
+          Name for a new or existing profile.
+
+  [Button] Back
+           Returns to tab management.
+
+
+4. Chat Filters
+===============
+
+Path:
+  Main Menu -> Servers -> Select Server -> Chat Filters
+
+4.1 ChatFiltersScreen
+---------------------
+Purpose:
+  Filters messages before they are shown in tabs or in All.
+
+Typical elements:
+  [Toggle] Chat Filter All Mode
+           When enabled, All chat can be filtered more strictly based on rules.
+
+  [List] Filter rules
+         Overview of existing filters.
+
+  [Button] Add filter
+           Creates a new filter rule.
+
+  [Input] Keyword / text
+          Message text that should be filtered.
+
+  [Input] Player
+          Optional player/sender filter.
+
+  [Toggle] Enabled
+           Enables or disables an individual filter rule.
+
+  [Toggle] Match case
+           Controls whether exact capitalization is required.
+
+  [Button] Delete filter
+           Removes a filter rule.
+
+  [Button] Back
+           Returns to the server configuration.
+
+
+5. Notifications
+================
+
+Path:
+  Main Menu -> Servers -> Select Server -> Notifications
+
+5.1 NotificationsScreen / Notifications Overview
+------------------------------------------------
+Purpose:
+  Entry point for notification rules, position/style settings, and history.
+
+Elements:
+  [Button] Rules
+           Opens the notification rules.
+           Path: Notifications -> Rules
+
+  [Button] Position/Style
+           Opens global/server-wide display settings for notifications.
+           Path: Notifications -> Position/Style
+
+  [Button] History
+           Opens the notification history.
+           Path: Notifications -> History
+
+  [Button] Back
+           Returns to the server configuration.
+
+No longer present:
+  - The extra Sound button in the Notifications overview has been removed.
+  - Sound is configured per notification rule.
+
+
+5.2 NotificationRulesScreen / Notification Rules
+------------------------------------------------
+Path:
+  Notifications -> Rules
+
+Purpose:
+  Overview of all notification rules for a server.
+
+Typical elements:
+  [List] Notification rules
+         Each rule can be opened/edited.
+
+  [Button] Add rule
+           Creates a new notification rule.
+
+  [Button] Open / edit rule
+           Opens NotificationEditScreen.
+
+  [Button] Delete rule
+           Removes a rule.
+
+  [Button] Back
+           Returns to the Notifications overview.
+
+
+5.3 NotificationEditScreen / Edit Notification Rule
+---------------------------------------------------
+Path:
+  Notifications -> Rules -> Open Rule
+
+Purpose:
+  Central edit menu for a single notification rule.
+
+Elements:
+  [Toggle] Notification enabled: ON/OFF
+           Enables or disables the entire rule.
+
+  [Button] Trigger
+           Opens basic/trigger settings.
+           Path: Edit Rule -> Trigger
+
+  [Button] Dependencies
+           Opens additional conditions for this notification.
+           Path: Edit Rule -> Dependencies
+
+  [Button] Screens
+           Opens the screen/tab selection for where this notification applies.
+           Path: Edit Rule -> Screens
+
+  [Button] Sound
+           Opens sound settings for this rule.
+           Path: Edit Rule -> Sound
+
+  [Button] Back
+           Returns to the notification rule list.
+
+
+5.4 NotificationBasicsScreen / Trigger
+--------------------------------------
+Path:
+  Notifications -> Rules -> Open Rule -> Trigger
+
+Purpose:
+  Defines when a notification should trigger.
+
+Typical elements:
+  [Toggle] Any Message
+           Notification triggers for every matching message.
+
+  [Input] Keyword
+          Word/text that must appear in the message.
+
+  [Toggle] Keyword active / keyword mode
+           Uses keyword matching instead of Any Message.
+
+  [Toggle] Match case
+           If present: capitalization must match exactly.
+
+  [Input] Name / rule name
+          If present: display name of the notification rule.
+
+  [Button] Back
+           Returns to the edit rule menu.
+
+
+5.5 DependenciesScreen / Notification Dependencies
+--------------------------------------------------
+Path:
+  Notifications -> Rules -> Open Rule -> Dependencies
+
+Purpose:
+  Additional conditions so a notification only triggers for specific players/texts.
+
+Typical elements:
+  [List] Dependency rules
+         List of additional conditions.
+
+  [Button] Add condition
+           Creates a new condition.
+
+  [Input] Player
+          Optional player/sender match.
+
+  [Input] Keyword / text
+          Optional text match.
+
+  [Toggle] Match case
+           Controls whether capitalization must match exactly.
+
+  [Button] Delete condition
+           Removes the condition.
+
+  [Button] Back
+           Returns to NotificationEditScreen.
+
+
+5.6 ScreenSelectionScreen / Screens
+-----------------------------------
+Path:
+  Notifications -> Rules -> Open Rule -> Screens
+
+Purpose:
+  Defines which tabs/screens a notification rule is active for.
+
+Elements:
+  [Toggle] Screen-dependent / specific screens only
+           Enables whether the rule only applies to selected tabs.
+
+  [List] Tabs/screens
+         Every existing tab appears as a selectable element.
+
+  [Toggle/Button] Select/deselect tab
+                  Marks whether the notification applies to that tab.
+
+  [Button] Back
+           Returns to NotificationEditScreen.
+
+
+5.7 NotificationSoundScreen / Sound
+-----------------------------------
+Path:
+  Notifications -> Rules -> Open Rule -> Sound
+
+Purpose:
+  Configure sound behavior for a single notification rule.
+
+Elements:
+  [Toggle] Sound: ON/OFF
+           Enables or disables sound for this rule.
+
+  [Input] Custom sound file
+          Path to a custom sound file.
+          Supported: MP3 and Java Sound formats such as WAV/AIFF/AU.
+
+  [Input] Volume
+          Numeric field for volume.
+          Typical range: 0.0 to 2.0.
+
+  [Input] Pitch
+          Numeric field for the default/fallback sound pitch.
+          Typical range: 0.5 to 2.0.
+
+  [Button] Test sound
+           Plays the currently configured sound as a test.
+
+  [Button] Back
+           Returns to NotificationEditScreen.
+
+Important:
+  The Sound button intentionally exists per rule, not in the Notifications overview.
+
+
+5.8 NotificationPositionStyleScreen / Position/Style
+----------------------------------------------------
+Path:
+  Notifications -> Position/Style
+
+Purpose:
+  Global/server-wide display settings for notification overlays.
+
+Typical elements:
+  [Input] X position
+          Fixed X position or special value for automatic placement.
+
+  [Input] Y position
+          Vertical position.
+
+  [Input] Width
+          Width of the notification display.
+
+  [Input] Height
+          Height of the notification display.
+
+  [Input] Opacity
+          Transparency of the notification display.
+
+  [Input] Duration / display time
+          How long notifications remain visible.
+
+  [Toggle] Outline
+           Enables or disables the outline/border.
+
+  [Input] Outline color
+          Color of the outline.
+
+  [Button] Back
+           Returns to the Notifications overview.
+
+
+5.9 NotificationHistoryScreen / History
+---------------------------------------
+Path:
+  Notifications -> History
+
+Purpose:
+  Displays previously triggered notifications.
+
+Typical elements:
+  [List] Notification history
+         Entries with screen/tab, reason, and message.
+
+  [Button] Jump to message
+           Jumps to the message in the matching chat window, if available.
+
+  [Button] Clear history
+           Clears the notification history.
+
+  [Button] Back
+           Returns to the Notifications overview.
+
+
+6. Config Background Image
+==========================
+
+Path:
+  Main Menu -> Config Background Image
+
+6.1 ConfigBackgroundScreen
+--------------------------
+Purpose:
+  Set a background image for config screens.
+
+Elements:
+  [Toggle] Config background image: ON/OFF
+           Enables/disables the background image in config screens.
+
+  [Input] Image path
+          Path to the image file.
+          Supported: JPG and PNG.
+
+  [Input] Opacity 0-1
+          Visibility/opacity of the background image.
+          0 = barely visible, 1 = maximum visibility.
+
+  [Button] Clear image
+           Removes the configured image path.
+
+  [Button] Back
+           Returns to the main menu.
+
+No longer present:
+  - Open Config Folder button has been removed.
+
+
+7. Shared UI Components
+=======================
+
+7.1 DarkScreen / ScrollableDarkScreen
+-------------------------------------
+Purpose:
+  Shared base for many config screens.
+
+Shared properties:
+  [Info] Dark background or config background image
+  [Info] Scrollable content for larger menus
+  [Action] Inputs are saved when leaving/going back
+
+Note:
+  The previous long auto-save explanation text has been removed.
+
+
+7.2 Text Fields in General
+--------------------------
+Used for:
+  - Tab names
+  - Positions and sizes
+  - Colors
+  - Notification keywords
+  - Dependency keywords
+  - Custom sound paths
+  - Background image paths
+
+Behavior:
+  [Input] Inputs are applied directly or when leaving the screen.
+  [Info] Tooltip only shows the field name, not the previous long auto-save text.
+
+
+8. Rough Navigation Map
+=======================
+
+Main Menu
+  -> Servers
+       -> Add Server
+       -> Edit Server
+            -> Tabs / Chat Windows
+                 -> Tab List
+                      -> Edit Tab
+                           -> Dependencies / Rules
+                      -> Profiles / Tab Profiles
+            -> Chat Filters
+            -> Notifications
+                 -> Rules
+                      -> Edit Notification Rule
+                           -> Trigger
+                           -> Dependencies
+                           -> Screens
+                           -> Sound
+                 -> Position/Style
+                 -> History
+  -> Config Background Image
+  -> Switch Language
+  -> Mod ON/OFF
+  -> Debug ON/OFF
+  -> Auto-Add-Server ON/OFF
+
+
+9. Important Entry Points for Feature Planning
+=============================================
+
+If you are planning a new feature, the most likely useful entry points are:
+
+- Global options:
+  Main Menu / ConfigHomeScreen
+
+- Server-specific options:
+  Servers -> Edit Server
+
+- Tab/window-specific options:
+  Servers -> Server -> Tabs -> Edit Tab
+
+- Rule/routing-specific options:
+  Edit Tab -> Dependencies
+  or Notifications -> Rules -> Edit Rule -> Dependencies
+
+- Notification-specific options:
+  Notifications -> Rules -> Edit Rule
+
+- Sound-specific options:
+  Notifications -> Rules -> Edit Rule -> Sound
+
+- Notification appearance/position:
+  Notifications -> Position/Style
+
+- Chat window appearance/position:
+  Tabs -> Edit Tab
+
+- Config background/theme:
+  Main Menu -> Config Background Image

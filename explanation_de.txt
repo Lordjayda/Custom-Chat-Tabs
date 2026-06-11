@@ -1,0 +1,700 @@
+MultiChatWindows 1.5.0 – Menüstruktur / UI-Planungsübersicht
+==============================================================
+
+Zweck
+-----
+Diese Datei ist als Planungsübersicht gedacht: Sie zeigt, wo sich Menüs, Untermenüs,
+Buttons, Toggles und Eingabefelder ungefähr befinden. Begriffe können je nach aktiver
+Sprache leicht anders angezeigt werden.
+
+Legende
+-------
+[Button]      anklickbarer Button / Navigation / Aktion
+[Toggle]      AN/AUS-Schalter
+[Input]       Textfeld oder Zahlenfeld
+[List]        Liste von Elementen
+[Info]        Hinweis-/Titeltext
+[Action]      direkte Aktion ohne eigenes Untermenü
+
+
+1. Einstieg / Hauptmenü
+=======================
+
+Pfad:
+  ModMenu / Config öffnen
+  -> MultiChatWindows Hauptmenü
+
+1.1 MultiChatWindows Hauptmenü / ConfigHomeScreen
+-------------------------------------------------
+Zweck:
+  Zentrale Startseite für globale Einstellungen und Server-Konfiguration.
+
+Elemente:
+  [Toggle] MultiChatWindows: AN/AUS
+           Aktiviert oder deaktiviert das Mod-System global.
+
+  [Button/Toggle] Sprache
+           Wechselt zwischen Deutsch und Englisch.
+           Anzeige z. B. "Sprache: Deutsch" / "Language: English".
+
+  [Toggle] Server automatisch hinzufügen: AN/AUS
+           Steuert, ob neue Server automatisch in die Config aufgenommen werden.
+
+  [Button] Servers / Server öffnen
+           Öffnet die Server-Verwaltung.
+           Pfad: Hauptmenü -> Servers
+
+  [Toggle] Debug: AN/AUS
+           Aktiviert oder deaktiviert Debug-Ausgaben/Debug-Funktionen.
+
+  [Button] Config-Hintergrundbild
+           Öffnet das Menü für das Hintergrundbild der Config-Screens.
+           Pfad: Hauptmenü -> Config-Hintergrundbild
+
+  [Button] Zurück
+           Schließt die Config bzw. geht zurück zum vorherigen Screen.
+
+
+2. Server-Verwaltung
+====================
+
+Pfad:
+  Hauptmenü -> Servers
+
+2.1 ServersScreen / Serverliste
+-------------------------------
+Zweck:
+  Auswahl und Verwaltung der vorhandenen Server-Konfigurationen.
+
+Typische Elemente:
+  [List] Server-Liste
+         Jede gespeicherte Server-Konfiguration erscheint als eigener Eintrag/Button.
+
+  [Button] Server öffnen / bearbeiten
+           Öffnet die Detail-Konfiguration für den jeweiligen Server.
+
+  [Button] Server hinzufügen
+           Öffnet ein Menü zum manuellen Hinzufügen eines Servers.
+
+  [Button] Zurück
+           Zurück zum Hauptmenü.
+
+Untermenüs:
+  - Server bearbeiten
+  - Server hinzufügen
+
+
+2.2 AddServerScreen / Server hinzufügen
+---------------------------------------
+Zweck:
+  Manuell einen Server-Key bzw. Server-Eintrag anlegen.
+
+Typische Elemente:
+  [Input] Server-Key / Server-Adresse / Server-ID
+          Eingabefeld für den Server, der angelegt werden soll.
+
+  [Button] Hinzufügen / Speichern
+           Erstellt den Server-Eintrag.
+
+  [Button] Zurück
+           Zurück zur Serverliste.
+
+
+2.3 Server bearbeiten / Server-Konfiguration
+--------------------------------------------
+Zweck:
+  Zentrale Konfiguration für einen einzelnen Server.
+
+Typische Bereiche/Buttons:
+  [Button] Tabs / Chat-Fenster
+           Öffnet die Tab-/Fenster-Konfiguration.
+
+  [Button] Chat-Filter
+           Öffnet die Filterregeln für diesen Server.
+
+  [Button] Notifications
+           Öffnet die Notification-Konfiguration für diesen Server.
+
+  [Button] Profile / Tab Profiles
+           Öffnet gespeicherte Profile für Tabs/Fenster, sofern vorhanden.
+
+  [Button] Zurück
+           Zurück zur Serverliste.
+
+
+3. Tabs / Chat-Fenster
+======================
+
+Pfad:
+  Hauptmenü -> Servers -> Server auswählen -> Tabs / Chat-Fenster
+
+3.1 TabsScreen / Tab-Liste
+--------------------------
+Zweck:
+  Verwaltung aller Chat-Fenster/Tabs eines Servers.
+
+Typische Elemente:
+  [List] Tabs
+         Enthält mindestens den "All"-/Standard-Tab und eigene Custom-Tabs.
+
+  [Button] Tab öffnen / bearbeiten
+           Öffnet die Einstellungen eines Tabs.
+
+  [Button] Neuer Tab
+           Erstellt einen neuen Custom-Tab.
+
+  [Button] Profile / Tab Profiles
+           Öffnet Profil-Funktionen, falls im jeweiligen Screen vorhanden.
+
+  [Button] Zurück
+           Zurück zur Server-Konfiguration.
+
+
+3.2 TabEditScreen / Tab bearbeiten
+----------------------------------
+Zweck:
+  Konfiguration eines einzelnen Chat-Fensters/Tabs.
+
+Wichtige Elemente:
+  [Input] Name
+          Anzeigename des Tabs.
+          Wichtig: Custom-Tab-Namen werden gespeichert.
+
+  [Toggle] Enabled / Aktiviert
+           Aktiviert oder deaktiviert den Tab.
+
+  [Toggle] Use Vanilla / Vanilla nutzen
+           Steuert, ob Nachrichten zusätzlich/im Vanilla-Chat landen.
+
+  [Input] X-Position
+          Horizontale Position des Chat-Fensters.
+
+  [Input] Y-Position
+          Vertikale Position des Chat-Fensters.
+
+  [Input] Breite
+          Breite des Chat-Fensters.
+
+  [Input] Höhe
+          Höhe des Chat-Fensters.
+
+  [Input] Opacity / Deckkraft
+          Transparenz/Deckkraft des Chat-Fensters.
+
+  [Input] Text Scale / Textgröße
+          Skalierung der Chat-Schrift.
+
+  [Toggle] Outline / Rahmen
+           Aktiviert oder deaktiviert den Rahmen.
+
+  [Input] Outline Width / Rahmenbreite
+          Breite des Rahmens.
+
+  [Input] Outline Color / Rahmenfarbe
+          Farbe des Rahmens, meist als Hex-Farbe.
+
+  [Toggle] Filter All Chat / Aus All herausfiltern
+           Wenn aktiv, können passende Nachrichten aus dem All-Tab entfernt werden.
+
+  [Button] Dependencies / Regeln
+           Öffnet die Bedingungen, wann Nachrichten in diesen Tab geroutet werden.
+
+  [Button] Löschen
+           Entfernt den Custom-Tab, falls es kein geschützter Standard-Tab ist.
+
+  [Button] Zurück
+           Zurück zur Tab-Liste.
+
+Hinweis:
+  Der All-Tab ist üblicherweise besonders behandelt und nicht in allen Feldern frei editierbar.
+
+
+3.3 DependenciesScreen / Tab-Bedingungen
+----------------------------------------
+Pfad:
+  Tabs -> Tab bearbeiten -> Dependencies / Regeln
+
+Zweck:
+  Legt fest, welche Nachrichten in einen Custom-Tab geroutet werden.
+
+Typische Elemente:
+  [List] Bedingungen / Dependency Rules
+         Liste aller Regeln für diesen Tab.
+
+  [Button] Regel hinzufügen
+           Erstellt eine neue Bedingung.
+
+  [Input] Spieler / Player
+          Optionaler Spielername oder Absender-Match.
+
+  [Input] Keyword / Text
+          Text, der in der Nachricht vorkommen muss.
+
+  [Toggle] Match Case / Groß-/Kleinschreibung
+           Steuert, ob Groß-/Kleinschreibung relevant ist.
+
+  [Button] Regel löschen
+           Entfernt eine Bedingung.
+
+  [Button] Zurück
+           Zurück zum Tab-Edit-Menü.
+
+
+3.4 Tab Profiles / Profile
+--------------------------
+Pfad:
+  Server -> Tabs -> Profile / Tab Profiles
+
+Zweck:
+  Speichern und Wiederherstellen von Tab-/Fenster-Layouts.
+
+Typische Elemente:
+  [List] Profile
+         Liste gespeicherter Profile.
+
+  [Button] Aktuelles Profil speichern
+           Speichert die aktuelle Tab-/Fenster-Konfiguration als Profil.
+
+  [Button] Profil laden / anwenden
+           Wendet ein gespeichertes Profil an.
+
+  [Button] Profil löschen
+           Entfernt ein gespeichertes Profil.
+
+  [Input] Profilname
+          Name für ein neues oder bestehendes Profil.
+
+  [Button] Zurück
+           Zurück zur Tab-Verwaltung.
+
+
+4. Chat-Filter
+==============
+
+Pfad:
+  Hauptmenü -> Servers -> Server auswählen -> Chat-Filter
+
+4.1 ChatFiltersScreen
+---------------------
+Zweck:
+  Filtert Nachrichten, bevor sie in Tabs oder All angezeigt werden.
+
+Typische Elemente:
+  [Toggle] Chat Filter All Mode
+           Wenn aktiv, kann All-Chat abhängig von Regeln stärker gefiltert werden.
+
+  [List] Filterregeln
+         Übersicht vorhandener Filter.
+
+  [Button] Filter hinzufügen
+           Legt eine neue Filterregel an.
+
+  [Input] Keyword / Text
+          Nachrichtentext, der gefiltert werden soll.
+
+  [Input] Player / Spieler
+          Optionaler Spieler-/Absenderfilter.
+
+  [Toggle] Aktiviert
+           Schaltet eine einzelne Filterregel an oder aus.
+
+  [Toggle] Match Case / Groß-/Kleinschreibung
+           Steuert, ob die Schreibweise exakt passen muss.
+
+  [Button] Filter löschen
+           Entfernt eine Filterregel.
+
+  [Button] Zurück
+           Zurück zur Server-Konfiguration.
+
+
+5. Notifications
+================
+
+Pfad:
+  Hauptmenü -> Servers -> Server auswählen -> Notifications
+
+5.1 NotificationsScreen / Notifications-Obermenü
+------------------------------------------------
+Zweck:
+  Einstieg in Notification-Regeln, Position/Style und Historie.
+
+Elemente:
+  [Button] Rules / Regeln
+           Öffnet die Notification-Regeln.
+           Pfad: Notifications -> Rules
+
+  [Button] Position/Style
+           Öffnet globale/serverweite Anzeige-Einstellungen für Notifications.
+           Pfad: Notifications -> Position/Style
+
+  [Button] History / Verlauf
+           Öffnet den Notification-Verlauf.
+           Pfad: Notifications -> History
+
+  [Button] Zurück
+           Zurück zur Server-Konfiguration.
+
+Nicht mehr vorhanden:
+  - Der zusätzliche Sound-Button im Notifications-Obermenü wurde entfernt.
+  - Sound wird pro Notification-Regel eingestellt.
+
+
+5.2 NotificationRulesScreen / Notification-Regeln
+-------------------------------------------------
+Pfad:
+  Notifications -> Rules
+
+Zweck:
+  Übersicht aller Notification-Regeln eines Servers.
+
+Typische Elemente:
+  [List] Notification-Regeln
+         Jede Regel kann geöffnet/bearbeitet werden.
+
+  [Button] Regel hinzufügen
+           Erstellt eine neue Notification-Regel.
+
+  [Button] Regel öffnen / bearbeiten
+           Öffnet NotificationEditScreen.
+
+  [Button] Regel löschen
+           Entfernt eine Regel.
+
+  [Button] Zurück
+           Zurück zum Notifications-Obermenü.
+
+
+5.3 NotificationEditScreen / Notification-Regel bearbeiten
+----------------------------------------------------------
+Pfad:
+  Notifications -> Rules -> Regel öffnen
+
+Zweck:
+  Zentrales Bearbeitungsmenü einer einzelnen Notification-Regel.
+
+Elemente:
+  [Toggle] Notification aktiviert: AN/AUS
+           Schaltet die gesamte Regel ein oder aus.
+
+  [Button] Trigger
+           Öffnet Basis-/Trigger-Einstellungen.
+           Pfad: Regel bearbeiten -> Trigger
+
+  [Button] Dependencies
+           Öffnet Zusatzbedingungen für diese Notification.
+           Pfad: Regel bearbeiten -> Dependencies
+
+  [Button] Screens
+           Öffnet die Screen-/Tab-Auswahl, für welche Tabs die Notification gilt.
+           Pfad: Regel bearbeiten -> Screens
+
+  [Button] Sound
+           Öffnet Sound-Einstellungen dieser Regel.
+           Pfad: Regel bearbeiten -> Sound
+
+  [Button] Zurück
+           Zurück zur Notification-Regelliste.
+
+
+5.4 NotificationBasicsScreen / Trigger
+--------------------------------------
+Pfad:
+  Notifications -> Rules -> Regel öffnen -> Trigger
+
+Zweck:
+  Bestimmt, wann eine Notification auslösen soll.
+
+Typische Elemente:
+  [Toggle] Any Message / Jede Nachricht
+           Notification löst bei jeder passenden Nachricht aus.
+
+  [Input] Keyword
+          Wort/Text, der in der Nachricht vorkommen muss.
+
+  [Toggle] Keyword aktiv / Keyword-Modus
+           Nutzt Keyword statt Any Message.
+
+  [Toggle] Match Case / Groß-/Kleinschreibung
+           Falls vorhanden: Schreibweise beachten.
+
+  [Input] Name / Regelname
+          Falls vorhanden: Anzeigename der Notification-Regel.
+
+  [Button] Zurück
+           Zurück zum Regel-Bearbeiten-Menü.
+
+
+5.5 DependenciesScreen / Notification-Dependencies
+--------------------------------------------------
+Pfad:
+  Notifications -> Rules -> Regel öffnen -> Dependencies
+
+Zweck:
+  Zusätzliche Bedingungen, damit eine Notification nur bei bestimmten Spielern/Texten auslöst.
+
+Typische Elemente:
+  [List] Dependency-Regeln
+         Liste der Zusatzbedingungen.
+
+  [Button] Bedingung hinzufügen
+           Erstellt eine neue Bedingung.
+
+  [Input] Player / Spieler
+          Optionaler Spieler-/Absender-Match.
+
+  [Input] Keyword / Text
+          Optionaler Text-Match.
+
+  [Toggle] Match Case
+           Groß-/Kleinschreibung beachten.
+
+  [Button] Bedingung löschen
+           Entfernt die Bedingung.
+
+  [Button] Zurück
+           Zurück zum NotificationEditScreen.
+
+
+5.6 ScreenSelectionScreen / Screens
+-----------------------------------
+Pfad:
+  Notifications -> Rules -> Regel öffnen -> Screens
+
+Zweck:
+  Legt fest, bei welchen Tabs/Screens eine Notification-Regel aktiv ist.
+
+Elemente:
+  [Toggle] Screen-dependent / Nur bestimmte Screens
+           Schaltet ein, ob die Regel nur für ausgewählte Tabs gilt.
+
+  [List] Tabs/Screens
+         Jeder vorhandene Tab erscheint als auswählbares Element.
+
+  [Toggle/Button] Tab auswählen/abwählen
+                  Markiert, ob die Notification für diesen Tab gilt.
+
+  [Button] Zurück
+           Zurück zum NotificationEditScreen.
+
+
+5.7 NotificationSoundScreen / Sound
+-----------------------------------
+Pfad:
+  Notifications -> Rules -> Regel öffnen -> Sound
+
+Zweck:
+  Sound-Verhalten einer einzelnen Notification-Regel konfigurieren.
+
+Elemente:
+  [Toggle] Sound: AN/AUS
+           Aktiviert oder deaktiviert Sound für diese Regel.
+
+  [Input] Eigene Sounddatei / Custom Sound File
+          Pfad zu einer eigenen Sounddatei.
+          Unterstützt: MP3 sowie Java-Sound-Formate wie WAV/AIFF/AU.
+
+  [Input] Volume / Lautstärke
+          Zahlenfeld für Lautstärke.
+          Typischer Bereich: 0.0 bis 2.0.
+
+  [Input] Pitch
+          Zahlenfeld für Pitch beim Standard-/Fallback-Sound.
+          Typischer Bereich: 0.5 bis 2.0.
+
+  [Button] Sound testen
+           Spielt den aktuell eingetragenen Sound testweise ab.
+
+  [Button] Zurück
+           Zurück zum NotificationEditScreen.
+
+Wichtig:
+  Der Sound-Button liegt absichtlich hier pro Regel und nicht mehr im Notifications-Obermenü.
+
+
+5.8 NotificationPositionStyleScreen / Position/Style
+----------------------------------------------------
+Pfad:
+  Notifications -> Position/Style
+
+Zweck:
+  Globale/serverweite Darstellung der Notification-Overlays.
+
+Typische Elemente:
+  [Input] X-Position
+          Feste X-Position oder Sonderwert für automatische Positionierung.
+
+  [Input] Y-Position
+          Vertikale Position.
+
+  [Input] Breite
+          Breite der Notification-Anzeige.
+
+  [Input] Höhe
+          Höhe der Notification-Anzeige.
+
+  [Input] Opacity / Deckkraft
+          Transparenz der Notification-Anzeige.
+
+  [Input] Dauer / Anzeigezeit
+          Wie lange Notifications sichtbar bleiben.
+
+  [Toggle] Outline / Rahmen
+           Rahmen aktivieren/deaktivieren.
+
+  [Input] Outline Color / Rahmenfarbe
+          Farbe des Rahmens.
+
+  [Button] Zurück
+           Zurück zum Notifications-Obermenü.
+
+
+5.9 NotificationHistoryScreen / History
+---------------------------------------
+Pfad:
+  Notifications -> History
+
+Zweck:
+  Zeigt bereits ausgelöste Notifications an.
+
+Typische Elemente:
+  [List] Notification-Verlauf
+         Einträge mit Screen/Tab, Grund und Nachricht.
+
+  [Button] Zu Nachricht springen / Jump
+           Springt, falls vorhanden, im passenden Chat-Fenster zur Nachricht.
+
+  [Button] Verlauf leeren
+           Löscht den Notification-Verlauf.
+
+  [Button] Zurück
+           Zurück zum Notifications-Obermenü.
+
+
+6. Config-Hintergrundbild
+=========================
+
+Pfad:
+  Hauptmenü -> Config-Hintergrundbild
+
+6.1 ConfigBackgroundScreen
+--------------------------
+Zweck:
+  Hintergrundbild für Config-Screens setzen.
+
+Elemente:
+  [Toggle] Config-Hintergrundbild: AN/AUS
+           Aktiviert/deaktiviert das Hintergrundbild in Config-Screens.
+
+  [Input] Bildpfad / Image Path
+          Pfad zur Bilddatei.
+          Unterstützt: JPG und PNG.
+
+  [Input] Opacity 0-1
+          Sichtbarkeit/Deckkraft des Hintergrundbildes.
+          0 = kaum sichtbar, 1 = maximal sichtbar.
+
+  [Button] Bild entfernen / Clear Image
+           Entfernt den eingetragenen Bildpfad.
+
+  [Button] Zurück
+           Zurück zum Hauptmenü.
+
+Nicht mehr vorhanden:
+  - Open Config Folder Button wurde entfernt.
+
+
+7. Gemeinsame UI-Bestandteile
+=============================
+
+7.1 DarkScreen / ScrollableDarkScreen
+-------------------------------------
+Zweck:
+  Gemeinsame Basis für viele Config-Screens.
+
+Gemeinsame Eigenschaften:
+  [Info] Dunkler Hintergrund oder Config-Hintergrundbild
+  [Info] Scrollbare Inhalte bei größeren Menüs
+  [Action] Eingaben werden beim Verlassen/Zurückgehen gespeichert
+
+Hinweis:
+  Der frühere lange Auto-Save-Erklärungstext wurde entfernt.
+
+
+7.2 Textfelder allgemein
+------------------------
+Vorkommen:
+  - Tab-Namen
+  - Positionen und Größen
+  - Farben
+  - Notification-Keywords
+  - Dependency-Keywords
+  - Custom-Sound-Pfade
+  - Background-Bildpfade
+
+Verhalten:
+  [Input] Eingaben werden direkt oder beim Verlassen übernommen.
+  [Info] Tooltip zeigt nur noch den Feldnamen, nicht mehr den langen Auto-Save-Text.
+
+
+8. Grobe Navigationskarte
+=========================
+
+Hauptmenü
+  -> Servers
+       -> Server hinzufügen
+       -> Server bearbeiten
+            -> Tabs / Chat-Fenster
+                 -> Tab-Liste
+                      -> Tab bearbeiten
+                           -> Dependencies / Regeln
+                      -> Profile / Tab Profiles
+            -> Chat-Filter
+            -> Notifications
+                 -> Rules
+                      -> Notification-Regel bearbeiten
+                           -> Trigger
+                           -> Dependencies
+                           -> Screens
+                           -> Sound
+                 -> Position/Style
+                 -> History
+  -> Config-Hintergrundbild
+  -> Sprache wechseln
+  -> Mod AN/AUS
+  -> Debug AN/AUS
+  -> Auto-Add-Server AN/AUS
+
+
+9. Wichtig für Feature-Planung
+==============================
+
+Wenn ein neues Feature geplant wird, sind die wahrscheinlich sinnvollsten Einstiegspunkte:
+
+- Globale Optionen:
+  Hauptmenü / ConfigHomeScreen
+
+- Serverbezogene Optionen:
+  Servers -> Server bearbeiten
+
+- Tab-/Fensterbezogene Optionen:
+  Servers -> Server -> Tabs -> Tab bearbeiten
+
+- Regel-/Routing-bezogene Optionen:
+  Tab bearbeiten -> Dependencies
+  oder Notifications -> Rules -> Regel bearbeiten -> Dependencies
+
+- Notification-bezogene Optionen:
+  Notifications -> Rules -> Regel bearbeiten
+
+- Sound-bezogene Optionen:
+  Notifications -> Rules -> Regel bearbeiten -> Sound
+
+- Aussehen/Position von Notifications:
+  Notifications -> Position/Style
+
+- Aussehen/Position von Chatfenstern:
+  Tabs -> Tab bearbeiten
+
+- Hintergrund/Theme der Config:
+  Hauptmenü -> Config-Hintergrundbild
