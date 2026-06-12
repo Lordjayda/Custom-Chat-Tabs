@@ -1,5 +1,6 @@
 package com.client.multichatwindows.hud;
 
+import com.mojang.logging.LogUtils;
 import com.client.multichatwindows.config.ConfigManager;
 import com.client.multichatwindows.config.model.ChatFilterRule;
 import com.client.multichatwindows.config.model.DependencyRule;
@@ -13,10 +14,12 @@ import com.client.multichatwindows.notification.NotificationSoundPlayer;
 import com.client.multichatwindows.util.DebugLog;
 import com.client.multichatwindows.util.EventLog;
 import com.client.multichatwindows.util.I18nUtil;
+import com.client.multichatwindows.util.PathTextLinkifier;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ServerInfo;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
+import org.slf4j.Logger;
 
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -31,6 +34,7 @@ import java.util.Map;
 import java.util.Set;
 
 public final class WindowService {
+    private static final Logger MCW_ROUTE_LOGGER = LogUtils.getLogger();
     private static final Map<String, ChatWindow> WINDOWS = new LinkedHashMap<>();
     private static final int DISABLED_BACKLOG_LIMIT = 10000;
     private static final List<Text> DISABLED_BACKLOG = new ArrayList<>();
@@ -54,6 +58,7 @@ public final class WindowService {
                 return;
             }
 
+            logRouteDecisionToMinecraftLog("tabs: minecraft chat", message.getString());
             DISABLED_BACKLOG.add(message.copy());
             while (DISABLED_BACKLOG.size() > DISABLED_BACKLOG_LIMIT) {
                 DISABLED_BACKLOG.remove(0);
@@ -224,7 +229,10 @@ public final class WindowService {
         }
         if (window != null) {
             window.push(withTimestamp(serverConfig, message), stackKey);
+            logRouteDecisionToMinecraftLog("tabs: " + window.displayName, plain);
             notifyIfConfigured(serverKey, screenId, window.displayName, plain);
+        } else {
+            logRouteDecisionToMinecraftLog("tabs: none", plain);
         }
     }
 
@@ -265,12 +273,14 @@ public final class WindowService {
 
     private static boolean routeIncoming(Text message, boolean bypassChatFilters) {
         GlobalConfig globalConfig = ConfigManager.global();
+        String plain = message == null ? "" : message.getString();
         if (!globalConfig.enabled) {
+            logRouteDecisionToMinecraftLog("tabs: minecraft chat", plain);
             return false;
         }
 
-        String plain = message == null ? "" : message.getString();
         if (shouldPassThroughVanilla(plain)) {
+            logRouteDecisionToMinecraftLog("tabs: minecraft chat", plain);
             return false;
         }
 
@@ -303,11 +313,13 @@ public final class WindowService {
             // Filtered messages are hidden and intentionally ignored by stacking.
             // No ChatWindow.push(), no breakStack(), no lastStackKey change.
             EventLog.filtered(serverKey, filterReason, plain);
+            logRouteDecisionToMinecraftLog("filtered", plain);
             return true;
         }
 
         boolean filterFromAll = false;
         boolean routedToCustomTab = false;
+        List<String> shownTabs = new ArrayList<>();
 
         for (TabConfig tab : serverConfig.tabs) {
             if (tab == null || !tab.enabled) {
@@ -326,6 +338,7 @@ public final class WindowService {
                     if (window != null) {
                         window.push(withTimestamp(serverConfig, message), stackKey);
                         routedToCustomTab = true;
+                        addShownTab(shownTabs, window.displayName);
                         DebugLog.write(plain, window.displayName, rule.describe());
                         notifyIfConfigured(serverKey, tab.id, window.displayName, plain);
                     }
@@ -344,15 +357,46 @@ public final class WindowService {
             ChatWindow all = WINDOWS.get("all");
             if (all != null) {
                 all.push(withTimestamp(serverConfig, message), stackKey);
+                addShownTab(shownTabs, all.displayName);
                 notifyIfConfigured(serverKey, "all", all.displayName, plain);
             }
         }
 
         if (!bypassChatFilters && !serverMessage && serverConfig.chatFilterAllMode && !routedToCustomTab) {
             EventLog.filtered(serverKey, "allMode:notMatched", plain);
+            logRouteDecisionToMinecraftLog("filtered", plain);
+        } else {
+            logRouteDecisionToMinecraftLog(formatShownTabs(shownTabs), plain);
         }
 
         return true;
+    }
+
+
+    private static void addShownTab(List<String> shownTabs, String tabName) {
+        if (shownTabs == null) {
+            return;
+        }
+        String clean = tabName == null || tabName.isBlank() ? "unknown" : tabName.trim();
+        for (String existing : shownTabs) {
+            if (existing != null && existing.equalsIgnoreCase(clean)) {
+                return;
+            }
+        }
+        shownTabs.add(clean);
+    }
+
+    private static String formatShownTabs(List<String> shownTabs) {
+        if (shownTabs == null || shownTabs.isEmpty()) {
+            return "tabs: none";
+        }
+        return "tabs: " + String.join(", ", shownTabs);
+    }
+
+    private static void logRouteDecisionToMinecraftLog(String prefix, String plain) {
+        String cleanPrefix = prefix == null || prefix.isBlank() ? "tabs: none" : prefix.trim();
+        String cleanMessage = plain == null ? "" : plain.replace('\n', ' ').replace('\r', ' ');
+        MCW_ROUTE_LOGGER.info("[MCW] {}: {}", cleanPrefix, cleanMessage);
     }
 
     private static String stackKeyFor(boolean serverMessage, String plain) {
@@ -417,7 +461,7 @@ public final class WindowService {
     }
 
     private static Text withTimestamp(ServerConfig serverConfig, Text message) {
-        Text base = message == null ? Text.empty() : message.copy();
+        Text base = PathTextLinkifier.linkifyFolderPaths(message == null ? Text.empty() : message.copy());
         String basePlain = base.getString();
         if (basePlain == null || basePlain.isBlank()) {
             return base;
@@ -541,6 +585,9 @@ public final class WindowService {
         switch (style.getClickEvent().getAction()) {
             case OPEN_URL:
                 return ChatWindow.openUrl(value);
+
+            case OPEN_FILE:
+                return ChatWindow.openFile(value);
 
             case RUN_COMMAND:
                 if (client.player != null && client.player.networkHandler != null) {

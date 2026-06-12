@@ -421,6 +421,9 @@ public class ChatWindow {
             case OPEN_URL:
                 return openUrl(value);
 
+            case OPEN_FILE:
+                return openFile(value);
+
             case RUN_COMMAND:
                 if (mc.player != null && mc.player.networkHandler != null) {
                     mc.player.networkHandler.sendChatCommand(
@@ -510,6 +513,40 @@ public class ChatWindow {
 
         try {
             net.minecraft.util.Util.getOperatingSystem().open(url);
+            return true;
+        } catch (Exception ignored) {
+        }
+
+        return false;
+    }
+
+    public static boolean openFile(String value) {
+        if (value == null || value.isBlank()) {
+            return false;
+        }
+
+        try {
+            Path path = Path.of(value.trim()).normalize();
+            File file = path.toFile();
+            if (Desktop.isDesktopSupported()) {
+                Desktop desktop = Desktop.getDesktop();
+                if (desktop.isSupported(Desktop.Action.OPEN)) {
+                    desktop.open(file);
+                    return true;
+                }
+            }
+        } catch (Exception ignored) {
+        }
+
+        try {
+            Path path = Path.of(value.trim()).normalize();
+            net.minecraft.util.Util.getOperatingSystem().open(path.toUri());
+            return true;
+        } catch (Exception ignored) {
+        }
+
+        try {
+            net.minecraft.util.Util.getOperatingSystem().open(value.trim());
             return true;
         } catch (Exception ignored) {
         }
