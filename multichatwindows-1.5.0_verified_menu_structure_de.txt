@@ -1,0 +1,445 @@
+MultiChatWindows 1.5.0 – VERIFIZIERTE Menüstruktur aus der ZIP
+=================================================================
+
+Quelle / Scan
+-------------
+Diese Übersicht wurde aus der hochgeladenen ZIP/Base64-Datei neu geprüft.
+Gefunden wurden 33 Java-Dateien unter:
+  src/main/java/com/client/multichatwindows/config/ui
+
+Wichtig: Diese Datei ist bewusst vorsichtiger als die alte Übersicht. Alles, was ich in der ZIP nicht
+als Screen/Button/Eingabefeld gefunden habe, ist entfernt oder als „nicht gefunden“ markiert.
+
+Gefundene UI-Dateien
+--------------------
+  - AddServerScreen.java
+  - ChatActionMenuScreen.java
+  - ChatFiltersScreen.java
+  - ConfigBackgroundRenderer.java
+  - ConfigBackgroundScreen.java
+  - ConfigHomeScreen.java
+  - ConfigUiAutoSave.java
+  - DarkButton.java
+  - DarkScreen.java
+  - DependenciesScreen.java
+  - NotificationBasicsScreen.java
+  - NotificationEditScreen.java
+  - NotificationHelpScreen.java
+  - NotificationHistoryScreen.java
+  - NotificationPositionScreen.java
+  - NotificationPositionStyleScreen.java
+  - NotificationRulesScreen.java
+  - NotificationSoundScreen.java
+  - NotificationStyleScreen.java
+  - NotificationsScreen.java
+  - OutlineMenuScreen.java
+  - PixelSlider.java
+  - RealTimeEditorScreen.java
+  - ScreenSelectionScreen.java
+  - ScreensMenuScreen.java
+  - ScrollableDarkScreen.java
+  - ServersScreen.java
+  - StyleMenuScreen.java
+  - TabEditScreen.java
+  - TabsScreen.java
+  - TimestampMenuScreen.java
+  - TooltipHelper.java
+  - UtilOpenHelper.java
+
+Legende
+-------
+[Button]  klickbarer Button / Navigation
+[Toggle]  AN/AUS-Button
+[Input]   Textfeld oder Zahlenfeld
+[Slider]  Schieberegler
+[List]    dynamische Liste aus Config-Einträgen
+[Info]    Titel/Hinweis/Anzeige
+
+
+1. Hauptmenü
+============
+
+1.1 ConfigHomeScreen – „Multi Chat Windows“
+------------------------------------------
+Pfad:
+  ModMenu / Config öffnen -> Hauptmenü
+
+Elemente:
+  [Toggle] MultiChatWindows Enabled: ON/OFF
+  [Button/Toggle] Language: %s
+  [Toggle] Auto Add Server: ON/OFF
+  [Button] Servers -> ServersScreen
+  [Toggle] Debug: ON/OFF
+  [Button] Config background image -> ConfigBackgroundScreen
+  [Button] Back
+
+
+2. Server-Menüs
+===============
+
+2.1 ServersScreen – „Server Profiles“
+-------------------------------------
+Pfad:
+  Hauptmenü -> Servers
+
+Elemente:
+  [List] Server-Einträge
+         Pro Server:
+           [Button] Server-Button „%s“ -> TabsScreen
+           [Button] X -> Server löschen
+
+  [Button] Add Server -> AddServerScreen
+  [Button] Back
+
+Wichtig:
+  Es gibt in der geprüften ZIP keinen eigenen „Server bearbeiten“-Screen. Ein Server-Eintrag öffnet direkt TabsScreen.
+
+
+2.2 AddServerScreen – „Add Server“
+----------------------------------
+Pfad:
+  Hauptmenü -> Servers -> Add Server
+
+Elemente:
+  [Input] Server IP / Name
+  [Button] Create / Open -> erstellt/öffnet Server und geht zu TabsScreen
+  [Button] Back
+
+
+2.3 TabsScreen – „Server Menu“
+------------------------------
+Pfad:
+  Hauptmenü -> Servers -> Server auswählen
+
+Elemente:
+  [Button] Tabs -> ScreensMenuScreen
+  [Button] Notifications -> NotificationsScreen
+  [Button] Chat Filtering -> ChatFiltersScreen
+  [Button] Timestamps -> TimestampMenuScreen
+  [Button] Back
+
+
+3. Tabs / Chat-Fenster
+======================
+
+3.1 ScreensMenuScreen – „Tabs“
+------------------------------
+Pfad:
+  Server Menu -> Tabs
+
+Elemente:
+  [List] Tabs aus der Server-Config
+         Pro Tab:
+           [Button] Tab-Button „%s“ -> TabEditScreen
+           [Button] ⧉ -> Tab duplizieren
+           [Button] X oder Locked -> Tab löschen bzw. All-Tab gesperrt
+
+  [Button] Add Tab
+  [Button] Back
+
+Nicht gefunden:
+  Ein eigenes „Tab Profiles“- oder Profile-Menü wurde in der ZIP nicht gefunden.
+
+
+3.2 TabEditScreen – „Tab Settings“
+----------------------------------
+Pfad:
+  Server Menu -> Tabs -> Tab auswählen
+
+Elemente:
+  [Input] Tab Name
+  [Toggle] Enabled: ON/OFF
+  [Button] Style -> StyleMenuScreen
+  [Toggle] Filter All Chat: ON/OFF
+  [Button] Dependencies -> DependenciesScreen
+  [Button] Back
+
+Hinweise:
+  Der All-Tab ist gesperrt/sonderbehandelt.
+  Position, Größe, Opacity, Text Scale und Vanilla-Chat liegen nicht direkt hier, sondern im Style-Untermenü.
+
+
+3.3 StyleMenuScreen – „Style“
+-----------------------------
+Pfad:
+  Tab Settings -> Style
+
+Elemente:
+  [Toggle] Vanilla Chat: ON/OFF
+  [Input] X
+  [Input] Y
+  [Input] Width
+  [Input] Height
+  [Input] Opacity
+  [Input] Text Scale
+  [Button] Outline -> OutlineMenuScreen
+  [Button] Edit Position & Size -> RealTimeEditorScreen
+  [Button] Back
+
+
+3.4 OutlineMenuScreen – „Outline“
+---------------------------------
+Pfad:
+  Tab Settings -> Style -> Outline
+
+Elemente:
+  [Toggle] Outline: ON/OFF
+  [Slider] Thickness / Outline width
+  [Input] HEX Color
+  [Info] Preview
+  [Button] Back
+
+
+3.5 RealTimeEditorScreen – „Realtime Editor“
+--------------------------------------------
+Pfad:
+  Tab Settings -> Style -> Edit Position & Size
+
+Elemente:
+  [Action] Drag = move
+  [Action] Resize über Ecke/Handle
+  [Info] Anzeige x/y/w/h
+  [Button] Back
+
+
+3.6 DependenciesScreen – „Dependencies“
+---------------------------------------
+Pfad:
+  Tab Settings -> Dependencies
+
+Elemente:
+  [List] Dependency-Regeln
+         Pro Regel:
+           [Toggle/Button] Player oder Message
+           [Input] Value
+           [Button] X -> Regel löschen
+
+  [Button] Add Dependency
+  [Button] Back
+
+Wichtig:
+  Dieser Screen ist für Tab-Dependencies vorhanden. In NotificationEditScreen gibt es dagegen keinen separaten Dependencies-Button.
+
+
+4. Chat Filtering
+=================
+
+4.1 ChatFiltersScreen – „Chat Filtering“
+----------------------------------------
+Pfad:
+  Server Menu -> Chat Filtering
+
+Elemente:
+  [Toggle] Filter All Mode: ON/OFF
+  [List] Filterregeln
+         Pro Regel:
+           [Toggle/Button] aktiv/inaktiv über ✔ / ❌
+           [Toggle/Button] Player oder Message
+           [Input] Value
+           [Button] X -> Filter löschen
+
+  [Button] Add Filter
+  [Button] Back
+
+
+5. Timestamps
+=============
+
+5.1 TimestampMenuScreen
+-----------------------
+Pfad:
+  Server Menu -> Timestamps
+
+Elemente:
+  [Toggle] Timestamp: ON/OFF
+  [Input] Timestamp format
+  [Input] Timestamp color / HEX color
+  [Button] Back
+
+
+6. Notifications
+================
+
+6.1 NotificationsScreen – „Notifications“
+-----------------------------------------
+Pfad:
+  Server Menu -> Notifications
+
+Elemente:
+  [Button] Notification Rules -> NotificationRulesScreen
+  [Button] Position and Style -> NotificationPositionStyleScreen
+  [Button] Notification History -> NotificationHistoryScreen
+  [Button] Back
+
+Nicht vorhanden:
+  Kein Sound-Button im Notifications-Obermenü.
+
+
+6.2 NotificationRulesScreen – „Notification Rules“
+--------------------------------------------------
+Pfad:
+  Notifications -> Notification Rules
+
+Elemente:
+  [List] Notification-Regeln
+         Pro Regel:
+           [Button] Regel öffnen -> NotificationEditScreen
+           [Button] X -> Regel löschen
+
+  [Button] Add Notification -> NotificationEditScreen
+  [Button] Back
+
+
+6.3 NotificationEditScreen – „Edit Notification“
+------------------------------------------------
+Pfad:
+  Notifications -> Notification Rules -> Regel öffnen
+
+Elemente:
+  [Toggle] Enabled: ON/OFF
+  [Button] Trigger / Keyword -> NotificationBasicsScreen
+  [Button] Tabs -> ScreenSelectionScreen
+  [Button] Sound -> NotificationSoundScreen
+  [Button] Back
+
+Wichtig korrigiert:
+  In der geprüften ZIP gibt es hier keinen „Dependencies“-Button.
+
+
+6.4 NotificationBasicsScreen – „Trigger / Keyword“
+--------------------------------------------------
+Pfad:
+  Edit Notification -> Trigger / Keyword
+
+Elemente:
+  [Toggle] Mode: Any Message / Mode: Keyword
+  [Toggle] Sound: ON/OFF
+  [Toggle] Filter by tab: ON/OFF
+  [Input] Keyword
+  [Button] Back
+
+Hinweis:
+  Sound AN/AUS existiert hier zusätzlich als Toggle. Die Datei/Pfad-Auswahl für Custom Sound ist im Sound-Menü.
+
+
+6.5 ScreenSelectionScreen – „Select Tabs“
+-----------------------------------------
+Pfad:
+  Edit Notification -> Tabs
+
+Elemente:
+  [List] Tabs/Screens
+         Pro Tab:
+           [Button/Toggle] Tab ausgewählt/nicht ausgewählt
+
+  [Button] Back
+
+
+6.6 NotificationSoundScreen – „Sound“
+-------------------------------------
+Pfad:
+  Edit Notification -> Sound
+
+Elemente:
+  [Toggle] Sound: ON/OFF
+  [Input] Custom sound file
+  [Input] Volume
+  [Input] Pitch
+  [Button] Test sound
+  [Button] Back
+
+
+6.7 NotificationPositionStyleScreen – „Position and Style“
+----------------------------------------------------------
+Pfad:
+  Notifications -> Position and Style
+
+Elemente:
+  [Button] Position -> NotificationPositionScreen
+  [Button] Style -> NotificationStyleScreen
+  [Button] Reset
+  [Button] Back
+
+
+6.8 NotificationPositionScreen – „Notification Position“
+--------------------------------------------------------
+Pfad:
+  Notifications -> Position and Style -> Position
+
+Elemente:
+  [Toggle] Default position: ON/OFF
+  [Input] X
+  [Input] Y
+  [Input] Width
+  [Input] Max Visible
+  [Info] Position Preview
+  [Button] Back
+
+
+6.9 NotificationStyleScreen – „Notification Style“
+--------------------------------------------------
+Pfad:
+  Notifications -> Position and Style -> Style
+
+Elemente:
+  [Input] Text Scale
+  [Info] Text Scale Preview
+  [Button] Back
+
+
+6.10 NotificationHistoryScreen – „Notification History“
+-------------------------------------------------------
+Pfad:
+  Notifications -> Notification History
+
+Elemente:
+  [List] Notification History Einträge
+         Pro Eintrag:
+           [Button] Eintrag/Jump-Aktion
+
+  [Button] Back
+
+Wichtig:
+  Einen separaten „Clear History“-Button habe ich in der geprüften ZIP nicht als DarkButton gefunden.
+
+
+6.11 NotificationHelpScreen – „Help“
+------------------------------------
+Gefunden, aber in der geprüften Navigation nicht als Button aus NotificationsScreen verlinkt.
+
+Elemente:
+  [Info] Help lines
+  [Button] Back
+
+
+7. Config-Hintergrundbild
+=========================
+
+7.1 ConfigBackgroundScreen – „Config background image“
+------------------------------------------------------
+Pfad:
+  Hauptmenü -> Config background image
+
+Elemente:
+  [Toggle] Config background image: ON/OFF
+  [Input] Image path
+  [Input] Opacity 0-1
+  [Button] Clear image
+  [Button] Back
+
+Nicht vorhanden:
+  Kein „Open Config Folder“-Button.
+
+
+8. Chat-Aktionsmenü
+===================
+
+8.1 ChatActionMenuScreen – „Message Action“
+-------------------------------------------
+Gefundenes Menü für Nachrichtenaktionen.
+
+Elemente:
+  [Button] Copy
+  [Button] Back
+
+
