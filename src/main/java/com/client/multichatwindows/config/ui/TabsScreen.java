@@ -52,6 +52,18 @@ public class TabsScreen extends ScrollableDarkScreen {
                 Text.literal("Timestamp Style"),
                 () -> MinecraftClient.getInstance().setScreen(new TimestampMenuScreen(this, serverKey))
         ));
+        y += 26;
+
+        addDrawableChild(new DarkButton(
+                cx - 110, y, 220, 20,
+                Text.translatable(sc.noChatClearing ? "multichatwindows.no_chat_clearing.on" : "multichatwindows.no_chat_clearing.off"),
+                () -> {
+                    sc.noChatClearing = !sc.noChatClearing;
+                    ConfigManager.saveServer(serverKey, sc);
+                    WindowService.rebuildForCurrentServer();
+                    init();
+                }
+        ));
 
         
 

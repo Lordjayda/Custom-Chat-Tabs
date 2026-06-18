@@ -60,6 +60,14 @@ public class ConfigHomeScreen extends ScrollableDarkScreen {
         }));
         y += 26;
 
+        addDrawableChild(new DarkButton(centerX - 110, y, 220, 20, Text.translatable(config.chatHistoryEnabled ? "multichatwindows.chat_history.on" : "multichatwindows.chat_history.off"), () -> {
+            config.chatHistoryEnabled = !config.chatHistoryEnabled;
+            ConfigManager.saveGlobal();
+            com.client.multichatwindows.hud.WindowService.rebuildForCurrentServer();
+            init();
+        }));
+        y += 26;
+
         addDrawableChild(new DarkButton(centerX - 110, y, 220, 20, Text.translatable("multichatwindows.config_background.open"), () -> MinecraftClient.getInstance().setScreen(new ConfigBackgroundScreen(this))));
         addDrawableChild(new DarkButton(centerX - 110, height - 28, 220, 20, Text.translatable("multichatwindows.back"), () -> MinecraftClient.getInstance().setScreen(parent)));
     }

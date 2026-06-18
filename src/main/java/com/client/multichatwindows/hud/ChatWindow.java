@@ -1,5 +1,6 @@
 package com.client.multichatwindows.hud;
 
+import com.client.multichatwindows.util.TextJsonUtil;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.text.ClickEvent;
@@ -96,6 +97,7 @@ public class ChatWindow {
             // use the latest message text/timestamp, e.g. "16:32 hi" + "16:33 hi"
             // becomes "16:33 hi (*2)" and then "16:33 hi (*3)".
             last.original = msg.copy();
+            last.serializedJson = TextJsonUtil.toJson(msg);
             last.createdAtMs = now;
 
             rebuildRenderedLines();
@@ -107,7 +109,7 @@ public class ChatWindow {
             return;
         }
 
-        entries.add(new Entry(msg.copy(), 1, now));
+        entries.add(new Entry(msg.copy(), 1, now, TextJsonUtil.toJson(msg)));
 
         if (entries.size() > MAX_MESSAGES) {
             int remove = entries.size() - MAX_MESSAGES;
@@ -147,6 +149,53 @@ public class ChatWindow {
         lastSender = null;
         lastStackKey = null;
     }
+
+    public void clearMessages() {
+        entries.clear();
+        lines.clear();
+        scrollOffset = 0;
+        breakStack();
+    }
+
+    public void restoreJsonHistory(List<String> messages) {
+        clearMessages();
+        if (messages == null || messages.isEmpty()) {
+            return;
+        }
+
+        int start = Math.max(0, messages.size() - MAX_MESSAGES);
+        long now = System.currentTimeMillis();
+        for (int i = start; i < messages.size(); i++) {
+            String json = messages.get(i);
+            if (json == null || json.isBlank()) {
+                continue;
+            }
+            Text restored = TextJsonUtil.fromJson(json);
+            entries.add(new Entry(restored, 1, now, json));
+        }
+
+        rebuildRenderedLines();
+        scrollOffset = 0;
+        breakStack();
+    }
+
+    public List<String> snapshotJsonHistory() {
+        List<String> snapshot = new ArrayList<>();
+        for (Entry entry : entries) {
+            if (entry == null || entry.original == null) {
+                continue;
+            }
+            String json = entry.serializedJson == null || entry.serializedJson.isBlank()
+                    ? TextJsonUtil.toJson(entry.original)
+                    : entry.serializedJson;
+            if (json == null || json.isBlank()) {
+                continue;
+            }
+            snapshot.add(json);
+        }
+        return snapshot;
+    }
+
 
     private void restoreScrollAfterAppend(int previousRowCount, boolean preserveScrolledView) {
         if (preserveScrolledView) {
@@ -1153,15 +1202,23 @@ public class ChatWindow {
         public Text original;
         public int repeatCount;
         public long createdAtMs;
+        public String serializedJson;
 
         public Entry(Text original, int repeatCount) {
-            this(original, repeatCount, System.currentTimeMillis());
+            this(original, repeatCount, System.currentTimeMillis(), TextJsonUtil.toJson(original));
         }
 
         public Entry(Text original, int repeatCount, long createdAtMs) {
+            this(original, repeatCount, createdAtMs, TextJsonUtil.toJson(original));
+        }
+
+        public Entry(Text original, int repeatCount, long createdAtMs, String serializedJson) {
             this.original = original == null ? Text.empty() : original;
             this.repeatCount = Math.max(1, repeatCount);
             this.createdAtMs = createdAtMs;
+            this.serializedJson = serializedJson == null || serializedJson.isBlank()
+                    ? TextJsonUtil.toJson(this.original)
+                    : serializedJson;
         }
     }
 

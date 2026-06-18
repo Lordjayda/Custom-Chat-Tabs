@@ -1,5 +1,7 @@
 package com.client.multichatwindows.hud;
 
+import com.client.multichatwindows.config.ConfigManager;
+import com.client.multichatwindows.util.TextJsonUtil;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
@@ -24,6 +26,7 @@ public final class ChatCopyMenu {
 
     private static Text targetMessage;
     private static String targetPlain = "";
+    private static String targetJson = "";
     private static String targetPlayer = "";
     private static String targetTab = "";
 
@@ -39,12 +42,16 @@ public final class ChatCopyMenu {
 
         targetMessage = message;
         targetPlain = message.getString();
+        targetJson = TextJsonUtil.toJson(message);
         targetPlayer = guessPlayerName(targetPlain);
         targetTab = findTabNameAt(mouseX, mouseY);
 
         TextRenderer textRenderer = MinecraftClient.getInstance().textRenderer;
         width = 46;
         width = Math.max(width, textRenderer.getWidth(labelMessage()) + PADDING_X * 2);
+        if (showJsonRow()) {
+            width = Math.max(width, textRenderer.getWidth(labelJson()) + PADDING_X * 2);
+        }
         if (!targetPlayer.isBlank()) {
             width = Math.max(width, textRenderer.getWidth(labelPlayer()) + PADDING_X * 2);
         }
@@ -97,6 +104,11 @@ public final class ChatCopyMenu {
         context.drawTextWithShadow(textRenderer, labelMessage(), x + PADDING_X, drawY, 0xFFFFFFFF);
         drawY += ROW_HEIGHT;
 
+        if (showJsonRow()) {
+            context.drawTextWithShadow(textRenderer, labelJson(), x + PADDING_X, drawY, 0xFFFFFFFF);
+            drawY += ROW_HEIGHT;
+        }
+
         if (!targetPlayer.isBlank()) {
             context.drawTextWithShadow(textRenderer, labelPlayer(), x + PADDING_X, drawY, 0xFFFFFFFF);
             drawY += ROW_HEIGHT;
@@ -115,12 +127,17 @@ public final class ChatCopyMenu {
         visible = false;
         targetMessage = null;
         targetPlain = "";
+        targetJson = "";
         targetPlayer = "";
         targetTab = "";
     }
 
     private static Text labelMessage() {
         return Text.translatable("multichatwindows.copy_menu.message");
+    }
+
+    private static Text labelJson() {
+        return Text.literal("Json");
     }
 
     private static Text labelPlayer() {
@@ -131,8 +148,17 @@ public final class ChatCopyMenu {
         return Text.translatable("multichatwindows.copy_menu.tab");
     }
 
+    private static boolean showJsonRow() {
+        try {
+            return ConfigManager.global().debug;
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
     private static int menuHeight() {
         int rows = 1;
+        if (showJsonRow()) rows++;
         if (!targetPlayer.isBlank()) rows++;
         if (!targetTab.isBlank()) rows++;
         return rows * ROW_HEIGHT + PADDING_Y * 2;
@@ -146,6 +172,12 @@ public final class ChatCopyMenu {
             value = targetPlain;
         } else {
             current++;
+            if (showJsonRow()) {
+                if (row == current) {
+                    value = targetJson;
+                }
+                current++;
+            }
             if (!targetPlayer.isBlank()) {
                 if (row == current) {
                     value = targetPlayer;

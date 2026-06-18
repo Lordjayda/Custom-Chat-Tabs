@@ -166,5 +166,9 @@
   "multichatwindows.config_background.path": "Image path",
   "multichatwindows.config_background.opacity": "Opacity 0-1",
   "multichatwindows.config_background.clear": "Clear image",
-  "multichatwindows.config_background.hint": "Background image is used for all config screens. JPG and PNG are supported."
+  "multichatwindows.config_background.hint": "Background image is used for all config screens. JPG and PNG are supported.",
+  "multichatwindows.chat_history.on": "Chat history saving: ON",
+  "multichatwindows.chat_history.off": "Chat history saving: OFF",
+  "multichatwindows.no_chat_clearing.on": "No chat clearing: ON",
+  "multichatwindows.no_chat_clearing.off": "No chat clearing: OFF"
 }

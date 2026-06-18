@@ -166,5 +166,9 @@
   "multichatwindows.config_background.path": "Bildpfad",
   "multichatwindows.config_background.opacity": "Opacity 0-1",
   "multichatwindows.config_background.clear": "Bild entfernen",
-  "multichatwindows.config_background.hint": "Das Hintergrundbild gilt für alle Config-Screens. JPG und PNG werden unterstützt."
+  "multichatwindows.config_background.hint": "Das Hintergrundbild gilt für alle Config-Screens. JPG und PNG werden unterstützt.",
+  "multichatwindows.chat_history.on": "Chat-Speicherung: AN",
+  "multichatwindows.chat_history.off": "Chat-Speicherung: AUS",
+  "multichatwindows.no_chat_clearing.on": "Kein Chat-Leeren: AN",
+  "multichatwindows.no_chat_clearing.off": "Kein Chat-Leeren: AUS"
 }

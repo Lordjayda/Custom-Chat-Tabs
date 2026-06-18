@@ -4,10 +4,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ServerConfig {
-    public int version = 14;
+    public int version = 15;
     public String serverKey = "";
 
     public boolean chatFilterAllMode = false;
+    public boolean noChatClearing = false;
 
     public boolean timestampsEnabled = false;
     public String timestampFormat = "HH:mm";

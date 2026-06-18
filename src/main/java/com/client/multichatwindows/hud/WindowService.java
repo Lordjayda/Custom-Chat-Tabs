@@ -136,6 +136,7 @@ public final class WindowService {
 
     public static void rebuildForCurrentServer() {
         String key = currentServerKey();
+        boolean serverChanged = !key.equals(lastServerKey);
         lastServerKey = key;
 
         ServerConfig serverConfig = ConfigManager.getOrCreateServer(key);
@@ -160,8 +161,13 @@ public final class WindowService {
             window.outlineEnabled = tab.outlineEnabled;
             window.outlineWidth = Math.max(1, Math.min(20, tab.outlineWidth));
             window.outlineColor = parseColor(tab.outlineColor);
+            if (serverChanged) {
+                window.clearMessages();
+            }
             WINDOWS.put(tab.id, window);
         }
+
+        loadHistoryForCurrentServer(key);
     }
 
     public static boolean scrollAt(double mouseX, double mouseY, double verticalAmount) {
@@ -283,14 +289,18 @@ public final class WindowService {
             return false;
         }
 
-        if (plain == null || plain.isBlank()) {
-            ensureForCurrentServer();
-            return true;
-        }
-
         ensureForCurrentServer();
         String serverKey = currentServerKey();
         ServerConfig serverConfig = ConfigManager.getOrCreateServer(serverKey);
+
+        if (plain == null || plain.isBlank()) {
+            if (serverConfig.noChatClearing && isRepeatedBlankChatClear(plain)) {
+                logRouteDecisionToMinecraftLog("blocked repeated blank chat clear", plain);
+                return true;
+            }
+            return false;
+        }
+
         String player = guessPlayerName(plain);
         boolean serverMessage = isUnfilterableServerMessage(plain);
         String stackKey = stackKeyFor(serverMessage, plain);
@@ -336,6 +346,7 @@ public final class WindowService {
                     ChatWindow window = WINDOWS.get(tab.id);
                     if (window != null) {
                         window.push(withTimestamp(serverConfig, message), stackKey);
+                        saveHistoryForWindow(serverKey, window);
                         routedToCustomTab = true;
                         addShownTab(shownTabs, window.displayName);
                         DebugLog.write(plain, window.displayName, rule.describe());
@@ -356,6 +367,7 @@ public final class WindowService {
             ChatWindow all = WINDOWS.get("all");
             if (all != null) {
                 all.push(withTimestamp(serverConfig, message), stackKey);
+                saveHistoryForWindow(serverKey, all);
                 addShownTab(shownTabs, all.displayName);
                 notifyIfConfigured(serverKey, "all", all.displayName, plain);
             }
@@ -489,6 +501,100 @@ public final class WindowService {
                 .append(base);
     }
 
+    private static boolean isRepeatedBlankChatClear(String plain) {
+        if (plain == null || plain.isEmpty()) {
+            return false;
+        }
+
+        int newlineCount = 0;
+        for (int i = 0; i < plain.length(); i++) {
+            char c = plain.charAt(i);
+            if (c == '\n' || c == '\r') {
+                newlineCount++;
+                continue;
+            }
+            if (!Character.isWhitespace(c)) {
+                return false;
+            }
+        }
+
+        return newlineCount > 1;
+    }
+
+    private static void loadHistoryForCurrentServer(String serverKey) {
+        if (!ConfigManager.global().chatHistoryEnabled) {
+            return;
+        }
+
+        for (ChatWindow window : WINDOWS.values()) {
+            if (window == null || !window.entries.isEmpty()) {
+                continue;
+            }
+            window.restoreJsonHistory(readHistoryLines(serverKey, window.id));
+        }
+    }
+
+    private static void saveHistoryForWindow(String serverKey, ChatWindow window) {
+        if (window == null || !ConfigManager.global().chatHistoryEnabled) {
+            return;
+        }
+
+        try {
+            java.nio.file.Path file = historyFile(serverKey, window.id);
+            java.nio.file.Files.createDirectories(file.getParent());
+
+            List<String> encodedLines = new ArrayList<>();
+            for (String line : window.snapshotJsonHistory()) {
+                if (line == null || line.isBlank()) {
+                    continue;
+                }
+                encodedLines.add(java.util.Base64.getEncoder().encodeToString(line.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+            }
+
+            java.nio.file.Files.write(
+                    file,
+                    encodedLines,
+                    java.nio.charset.StandardCharsets.UTF_8,
+                    java.nio.file.StandardOpenOption.CREATE,
+                    java.nio.file.StandardOpenOption.TRUNCATE_EXISTING,
+                    java.nio.file.StandardOpenOption.WRITE
+            );
+        } catch (Exception ignored) {
+        }
+    }
+
+    private static List<String> readHistoryLines(String serverKey, String windowId) {
+        try {
+            java.nio.file.Path file = historyFile(serverKey, windowId);
+            if (!java.nio.file.Files.exists(file)) {
+                return List.of();
+            }
+
+            List<String> encodedLines = java.nio.file.Files.readAllLines(file, java.nio.charset.StandardCharsets.UTF_8);
+            List<String> decodedLines = new ArrayList<>();
+            for (String encodedLine : encodedLines) {
+                if (encodedLine == null || encodedLine.isBlank()) {
+                    continue;
+                }
+                try {
+                    byte[] bytes = java.util.Base64.getDecoder().decode(encodedLine.trim());
+                    decodedLines.add(new String(bytes, java.nio.charset.StandardCharsets.UTF_8));
+                } catch (Exception ignored) {
+                    decodedLines.add(encodedLine);
+                }
+            }
+            return decodedLines;
+        } catch (Exception ignored) {
+            return List.of();
+        }
+    }
+
+    private static java.nio.file.Path historyFile(String serverKey, String windowId) {
+        String safeServer = ConfigManager.safe(serverKey);
+        String safeWindow = ConfigManager.safe(windowId == null ? "all" : windowId);
+        return ConfigManager.basePath().resolve("history").resolve(safeServer).resolve(safeWindow + ".txt");
+    }
+
     private static void breakStackForWindow(String screenId) {
         ChatWindow window = WINDOWS.get(screenId);
         if (window != null) {
@@ -571,6 +677,10 @@ public final class WindowService {
             return false;
         }
 
+        if (handleVanillaTextClick(style)) {
+            return true;
+        }
+
         String value = ChatWindow.extractClickValue(style.getClickEvent());
         if (value == null || value.isEmpty()) {
             return false;
@@ -590,7 +700,11 @@ public final class WindowService {
 
             case RUN_COMMAND:
                 if (client.player != null && client.player.networkHandler != null) {
-                    client.player.networkHandler.sendChatCommand(value.replaceFirst("^/", ""));
+                    if (value.startsWith("/")) {
+                        client.player.networkHandler.sendChatCommand(value.substring(1));
+                    } else {
+                        client.player.networkHandler.sendChatMessage(value);
+                    }
                     return true;
                 }
                 return false;
@@ -612,6 +726,39 @@ public final class WindowService {
             default:
                 return false;
         }
+    }
+
+    private static boolean handleVanillaTextClick(Style style) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client == null || client.currentScreen == null || style == null) {
+            return false;
+        }
+
+        Class<?> type = client.currentScreen.getClass();
+        while (type != null) {
+            for (java.lang.reflect.Method method : type.getDeclaredMethods()) {
+                if (!method.getName().equals("handleTextClick")) {
+                    continue;
+                }
+                if (method.getParameterCount() != 1) {
+                    continue;
+                }
+                Class<?> parameterType = method.getParameterTypes()[0];
+                if (!parameterType.isAssignableFrom(Style.class)) {
+                    continue;
+                }
+
+                try {
+                    method.setAccessible(true);
+                    Object result = method.invoke(client.currentScreen, style);
+                    return result instanceof Boolean value && value;
+                } catch (Exception ignored) {
+                }
+            }
+            type = type.getSuperclass();
+        }
+
+        return false;
     }
 
     @FunctionalInterface
