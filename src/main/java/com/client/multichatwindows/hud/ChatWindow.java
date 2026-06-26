@@ -52,6 +52,7 @@ public class ChatWindow {
 
     public final List<Text> lines = new ArrayList<>();
     public final List<Entry> entries = new ArrayList<>();
+    private boolean historyFullRewriteRequired = true;
 
     private Text lastOriginalMessage = null;
     private String lastSender = null;
@@ -97,8 +98,10 @@ public class ChatWindow {
             // use the latest message text/timestamp, e.g. "16:32 hi" + "16:33 hi"
             // becomes "16:33 hi (*2)" and then "16:33 hi (*3)".
             last.original = msg.copy();
-            last.serializedJson = TextJsonUtil.toJson(msg);
+            last.serializedJson = null;
             last.createdAtMs = now;
+            last.dirty = true;
+            historyFullRewriteRequired = true;
 
             rebuildRenderedLines();
             restoreScrollAfterAppend(previousRowCount, preserveScrolledView);
@@ -109,11 +112,12 @@ public class ChatWindow {
             return;
         }
 
-        entries.add(new Entry(msg.copy(), 1, now, TextJsonUtil.toJson(msg)));
+        entries.add(new Entry(msg.copy(), 1, now, null));
 
         if (entries.size() > MAX_MESSAGES) {
             int remove = entries.size() - MAX_MESSAGES;
             entries.subList(0, remove).clear();
+            historyFullRewriteRequired = true;
         }
 
         lastOriginalMessage = msg.copy();
@@ -153,6 +157,7 @@ public class ChatWindow {
     public void clearMessages() {
         entries.clear();
         lines.clear();
+        historyFullRewriteRequired = true;
         scrollOffset = 0;
         breakStack();
     }
@@ -175,6 +180,7 @@ public class ChatWindow {
         }
 
         rebuildRenderedLines();
+        historyFullRewriteRequired = false;
         scrollOffset = 0;
         breakStack();
     }
@@ -185,15 +191,48 @@ public class ChatWindow {
             if (entry == null || entry.original == null) {
                 continue;
             }
-            String json = entry.serializedJson == null || entry.serializedJson.isBlank()
-                    ? TextJsonUtil.toJson(entry.original)
-                    : entry.serializedJson;
+
+            String json = entry.serializedJson;
+            if (json == null || json.isBlank()) {
+                json = TextJsonUtil.toJson(entry.original);
+                entry.serializedJson = json;
+            }
+
             if (json == null || json.isBlank()) {
                 continue;
             }
             snapshot.add(json);
         }
+        historyFullRewriteRequired = false;
         return snapshot;
+    }
+
+    public String latestJsonHistoryLine() {
+        if (entries.isEmpty()) {
+            return "";
+        }
+
+        Entry entry = entries.get(entries.size() - 1);
+        if (entry == null || entry.original == null) {
+            return "";
+        }
+
+        String json = entry.serializedJson;
+        if (json == null || json.isBlank()) {
+            json = TextJsonUtil.toJson(entry.original);
+            entry.serializedJson = json;
+        }
+        return json == null ? "" : json;
+    }
+
+    public boolean consumeHistoryFullRewriteRequired() {
+        boolean value = historyFullRewriteRequired;
+        historyFullRewriteRequired = false;
+        return value;
+    }
+
+    public void markHistoryFullRewriteRequired() {
+        historyFullRewriteRequired = true;
     }
 
 
@@ -281,35 +320,44 @@ public class ChatWindow {
         List<RowRef> rows = new ArrayList<>();
 
         for (Entry entry : entries) {
-            Text renderText = buildRenderText(entry);
-            OrderedText repeatSuffix = entry.repeatCount > 1 ? buildRepeatSuffixOrdered(entry.repeatCount) : null;
-            int suffixWidth = repeatSuffix == null ? 0 : Math.max(0, tr.getWidth(repeatSuffix));
-            int wrapWidth = repeatSuffix == null ? maxWidth : Math.max(20, maxWidth - suffixWidth);
+            if (entry.dirty || entry.cachedWrapWidth != maxWidth) {
+                entry.cachedRows.clear();
 
-            List<OrderedText> entryRows = tr.wrapLines(renderText, wrapWidth);
-            if (entryRows == null || entryRows.isEmpty()) {
-                entryRows = new ArrayList<>();
-                entryRows.add(OrderedText.styledForwardsVisitedString(
-                        renderText.getString(),
-                        renderText.getStyle()
-                ));
-            } else {
-                entryRows = new ArrayList<>(entryRows);
+                Text renderText = buildRenderText(entry);
+                OrderedText repeatSuffix = entry.repeatCount > 1 ? buildRepeatSuffixOrdered(entry.repeatCount) : null;
+                int suffixWidth = repeatSuffix == null ? 0 : Math.max(0, tr.getWidth(repeatSuffix));
+                int wrapWidth = repeatSuffix == null ? maxWidth : Math.max(20, maxWidth - suffixWidth);
+
+                List<OrderedText> entryRows = tr.wrapLines(renderText, wrapWidth);
+                if (entryRows == null || entryRows.isEmpty()) {
+                    entryRows = new ArrayList<>();
+                    entryRows.add(OrderedText.styledForwardsVisitedString(
+                            renderText.getString(),
+                            renderText.getStyle()
+                    ));
+                } else {
+                    entryRows = new ArrayList<>(entryRows);
+                }
+
+                if (repeatSuffix != null) {
+                    int lastIndex = entryRows.size() - 1;
+                    entryRows.set(lastIndex, appendOrderedText(entryRows.get(lastIndex), repeatSuffix));
+                }
+
+                for (OrderedText ordered : entryRows) {
+                    entry.cachedRows.add(new RowRef(
+                            entry.original,
+                            ordered,
+                            buildGlyphRuns(tr, ordered),
+                            entry.createdAtMs
+                    ));
+                }
+
+                entry.cachedWrapWidth = maxWidth;
+                entry.dirty = false;
             }
 
-            if (repeatSuffix != null) {
-                int lastIndex = entryRows.size() - 1;
-                entryRows.set(lastIndex, appendOrderedText(entryRows.get(lastIndex), repeatSuffix));
-            }
-
-            for (OrderedText ordered : entryRows) {
-                rows.add(new RowRef(
-                        entry.original,
-                        ordered,
-                        buildGlyphRuns(tr, ordered),
-                        entry.createdAtMs
-                ));
-            }
+            rows.addAll(entry.cachedRows);
         }
 
         return rows;
@@ -1199,17 +1247,20 @@ public class ChatWindow {
     }
 
     public static final class Entry {
+        public final List<RowRef> cachedRows = new ArrayList<>();
+        public int cachedWrapWidth = -1;
+        public boolean dirty = true;
         public Text original;
         public int repeatCount;
         public long createdAtMs;
         public String serializedJson;
 
         public Entry(Text original, int repeatCount) {
-            this(original, repeatCount, System.currentTimeMillis(), TextJsonUtil.toJson(original));
+            this(original, repeatCount, System.currentTimeMillis(), null);
         }
 
         public Entry(Text original, int repeatCount, long createdAtMs) {
-            this(original, repeatCount, createdAtMs, TextJsonUtil.toJson(original));
+            this(original, repeatCount, createdAtMs, null);
         }
 
         public Entry(Text original, int repeatCount, long createdAtMs, String serializedJson) {
@@ -1217,7 +1268,7 @@ public class ChatWindow {
             this.repeatCount = Math.max(1, repeatCount);
             this.createdAtMs = createdAtMs;
             this.serializedJson = serializedJson == null || serializedJson.isBlank()
-                    ? TextJsonUtil.toJson(this.original)
+                    ? null
                     : serializedJson;
         }
     }

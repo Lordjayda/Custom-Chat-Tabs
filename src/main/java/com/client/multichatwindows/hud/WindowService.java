@@ -543,23 +543,44 @@ public final class WindowService {
             java.nio.file.Path file = historyFile(serverKey, window.id);
             java.nio.file.Files.createDirectories(file.getParent());
 
-            List<String> encodedLines = new ArrayList<>();
-            for (String line : window.snapshotJsonHistory()) {
-                if (line == null || line.isBlank()) {
-                    continue;
+            boolean fullRewrite = window.consumeHistoryFullRewriteRequired() || !java.nio.file.Files.exists(file);
+            if (fullRewrite) {
+                List<String> encodedLines = new ArrayList<>();
+                for (String line : window.snapshotJsonHistory()) {
+                    if (line == null || line.isBlank()) {
+                        continue;
+                    }
+                    encodedLines.add(java.util.Base64.getEncoder().encodeToString(line.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
                 }
-                encodedLines.add(java.util.Base64.getEncoder().encodeToString(line.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+
+                java.nio.file.Files.write(
+                        file,
+                        encodedLines,
+                        java.nio.charset.StandardCharsets.UTF_8,
+                        java.nio.file.StandardOpenOption.CREATE,
+                        java.nio.file.StandardOpenOption.TRUNCATE_EXISTING,
+                        java.nio.file.StandardOpenOption.WRITE
+                );
+                return;
             }
 
+            String latest = window.latestJsonHistoryLine();
+            if (latest == null || latest.isBlank()) {
+                return;
+            }
+
+            String encodedLine = java.util.Base64.getEncoder().encodeToString(latest.getBytes(java.nio.charset.StandardCharsets.UTF_8));
             java.nio.file.Files.write(
                     file,
-                    encodedLines,
+                    java.util.List.of(encodedLine),
                     java.nio.charset.StandardCharsets.UTF_8,
                     java.nio.file.StandardOpenOption.CREATE,
-                    java.nio.file.StandardOpenOption.TRUNCATE_EXISTING,
-                    java.nio.file.StandardOpenOption.WRITE
+                    java.nio.file.StandardOpenOption.APPEND
             );
         } catch (Exception ignored) {
+            if (window != null) {
+                window.markHistoryFullRewriteRequired();
+            }
         }
     }
 
