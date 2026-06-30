@@ -34,8 +34,19 @@ public final class TextJsonUtil {
             return "{\"text\":\"\"}";
         }
 
-        // Use our own tree dump as canonical storage/copy format so all siblings/colors
-        // are preserved even when Minecraft's codec falls back to a plain text object.
+        // Prefer Minecraft's own serializers/codecs. They preserve real ClickEvent and
+        // HoverEvent payloads much better than a manual tree dump, especially for
+        // show_item/show_entity hover data.
+        String nativeJson = tryNativeSerializationToJson(text);
+        if (nativeJson != null && !nativeJson.isBlank()) {
+            return nativeJson;
+        }
+
+        String codecJson = tryCodecToJson(text);
+        if (codecJson != null && !codecJson.isBlank()) {
+            return codecJson;
+        }
+
         return GSON.toJson(toJsonObject(text));
     }
 
@@ -51,10 +62,13 @@ public final class TextJsonUtil {
             return Text.literal(json);
         }
 
-        // First try Minecraft's real codec with camelCase aliases. This is the best path
-        // for restoring real HoverEvent/ClickEvent objects, including more complex hover payloads.
+        Text nativeText = tryNativeSerializationFromJson(json);
+        if (nativeText != null) {
+            return nativeText;
+        }
+
         Text codecText = tryCodecFromJson(GSON.toJson(withMinecraftAliases(parsed)));
-        if (codecText != null && !codecText.getString().trim().equals(json.trim())) {
+        if (codecText != null) {
             return codecText;
         }
 
@@ -463,6 +477,100 @@ public final class TextJsonUtil {
                 }
             } catch (Exception ignored) {
             }
+        }
+        return null;
+    }
+
+    private static String tryNativeSerializationToJson(Text text) {
+        try {
+            Class<?> type = Class.forName("net.minecraft.text.Text$Serialization");
+            for (Method method : type.getMethods()) {
+                if (!Modifier.isStatic(method.getModifiers())) {
+                    continue;
+                }
+                String name = method.getName().toLowerCase(java.util.Locale.ROOT);
+                if (!name.contains("tojson")) {
+                    continue;
+                }
+                Class<?>[] params = method.getParameterTypes();
+                Object result = null;
+                if (params.length == 1 && params[0].isInstance(text)) {
+                    result = method.invoke(null, text);
+                } else if (params.length == 2 && params[0].isInstance(text)) {
+                    Object lookup = registryLookup();
+                    if (lookup != null && params[1].isInstance(lookup)) {
+                        result = method.invoke(null, text, lookup);
+                    }
+                }
+                if (result instanceof String string && !string.isBlank()) {
+                    return string;
+                }
+                if (result instanceof JsonElement element) {
+                    return GSON.toJson(element);
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return null;
+    }
+
+    private static Text tryNativeSerializationFromJson(String json) {
+        try {
+            Class<?> type = Class.forName("net.minecraft.text.Text$Serialization");
+            JsonElement element = JsonParser.parseString(json);
+            for (Method method : type.getMethods()) {
+                if (!Modifier.isStatic(method.getModifiers())) {
+                    continue;
+                }
+                String name = method.getName().toLowerCase(java.util.Locale.ROOT);
+                if (!name.contains("fromjson") && !name.contains("deserialize")) {
+                    continue;
+                }
+                Class<?>[] params = method.getParameterTypes();
+                Object result = null;
+                if (params.length == 1) {
+                    if (params[0] == String.class) {
+                        result = method.invoke(null, json);
+                    } else if (params[0].isInstance(element)) {
+                        result = method.invoke(null, element);
+                    }
+                } else if (params.length == 2) {
+                    Object lookup = registryLookup();
+                    if (lookup == null || !params[1].isInstance(lookup)) {
+                        continue;
+                    }
+                    if (params[0] == String.class) {
+                        result = method.invoke(null, json, lookup);
+                    } else if (params[0].isInstance(element)) {
+                        result = method.invoke(null, element, lookup);
+                    }
+                }
+                if (result instanceof Text text) {
+                    return text;
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return null;
+    }
+
+    private static String tryCodecToJson(Text text) {
+        try {
+            Object codec = textCodec();
+            Object ops = jsonOpsWithRegistries();
+            if (codec == null || ops == null || text == null) {
+                return null;
+            }
+            Method encodeStart = findAnyMethod(codec.getClass(), "encodeStart", 2);
+            if (encodeStart == null) {
+                return null;
+            }
+            Object dataResult = encodeStart.invoke(codec, ops, text);
+            Object result = dataResultResult(dataResult);
+            if (result instanceof JsonElement element) {
+                return GSON.toJson(element);
+            }
+        } catch (Exception ignored) {
         }
         return null;
     }

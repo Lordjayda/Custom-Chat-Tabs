@@ -5,6 +5,10 @@ import com.client.multichatwindows.config.model.ServerConfig;
 import com.client.multichatwindows.config.model.TabConfig;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import net.fabricmc.loader.api.FabricLoader;
 
 import java.io.IOException;
@@ -47,7 +51,7 @@ public final class ConfigManager {
                 return path.normalize();
             }
             return baseDir().resolve(path).normalize();
-        } catch (InvalidPathException ignored) {
+        } catch (Throwable ignored) {
             return baseDir();
         }
     }
@@ -58,11 +62,22 @@ public final class ConfigManager {
         }
 
         String normalized = value.trim();
-        while (normalized.length() >= 2) {
+        normalized = normalized.replace("\\\"", "\"");
+        normalized = normalized.replace("\\'", "'");
+
+        while (!normalized.isEmpty()) {
             char first = normalized.charAt(0);
+            if (first == '"' || first == '\'') {
+                normalized = normalized.substring(1).trim();
+                continue;
+            }
+            break;
+        }
+
+        while (!normalized.isEmpty()) {
             char last = normalized.charAt(normalized.length() - 1);
-            if ((first == '"' && last == '"') || (first == '\'' && last == '\'')) {
-                normalized = normalized.substring(1, normalized.length() - 1).trim();
+            if (last == '"' || last == '\'') {
+                normalized = normalized.substring(0, normalized.length() - 1).trim();
                 continue;
             }
             break;
@@ -295,6 +310,162 @@ public final class ConfigManager {
         all.filterAllChat = false;
 
         sc.tabs.add(0, all);
+    }
+
+    public static Path exportFile() {
+        return baseDir().resolve("multichatwindows-config-export.json");
+    }
+
+    public static String exportConfig() {
+        return exportConfig(exportFile());
+    }
+
+    public static String exportConfig(Path export) {
+        init();
+
+        if (export == null) {
+            return "";
+        }
+
+        try {
+            JsonObject root = new JsonObject();
+            root.addProperty("format", "multichatwindows-config-v1");
+            root.add("global", GSON.toJsonTree(global()));
+
+            JsonArray servers = new JsonArray();
+            for (String serverKey : listServers()) {
+                ServerConfig server = read(serverFile(serverKey), ServerConfig.class, null);
+                if (server == null) {
+                    continue;
+                }
+
+                loadTabsFromFolder(server);
+                ensureAllTab(server);
+
+                JsonObject serverObject = new JsonObject();
+                serverObject.addProperty("serverKey", server.serverKey == null || server.serverKey.isBlank() ? serverKey : server.serverKey);
+                serverObject.add("server", GSON.toJsonTree(server));
+                serverObject.add("tabs", GSON.toJsonTree(server.tabs == null ? new ArrayList<TabConfig>() : server.tabs));
+                servers.add(serverObject);
+            }
+            root.add("servers", servers);
+
+            export = export.toAbsolutePath().normalize();
+            Path parent = export.getParent();
+            if (parent != null) {
+                Files.createDirectories(parent);
+            }
+            Files.writeString(
+                    export,
+                    GSON.toJson(root),
+                    StandardCharsets.UTF_8,
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.TRUNCATE_EXISTING,
+                    StandardOpenOption.WRITE
+            );
+            return export.toString();
+        } catch (Throwable ignored) {
+            return "";
+        }
+    }
+
+    public static String importConfig() {
+        return importConfig(exportFile());
+    }
+
+    public static String importConfig(Path importFile) {
+        init();
+
+        if (importFile == null) {
+            return "";
+        }
+
+        importFile = importFile.toAbsolutePath().normalize();
+        if (!Files.exists(importFile) || !Files.isRegularFile(importFile)) {
+            return "";
+        }
+
+        try {
+            JsonElement parsed = JsonParser.parseString(Files.readString(importFile, StandardCharsets.UTF_8));
+            if (parsed == null || !parsed.isJsonObject()) {
+                return "";
+            }
+
+            JsonObject root = parsed.getAsJsonObject();
+            if (!root.has("global") && !root.has("servers")) {
+                return "";
+            }
+
+            GlobalConfig importedGlobal = root.has("global") && root.get("global").isJsonObject()
+                    ? GSON.fromJson(root.get("global"), GlobalConfig.class)
+                    : new GlobalConfig();
+            if (importedGlobal == null) {
+                importedGlobal = new GlobalConfig();
+            }
+
+            if (Files.exists(serversDir())) {
+                Files.walk(serversDir())
+                        .sorted(Comparator.reverseOrder())
+                        .forEach(p -> {
+                            try {
+                                Files.deleteIfExists(p);
+                            } catch (IOException ignored) {
+                            }
+                        });
+            }
+            Files.createDirectories(serversDir());
+
+            GLOBAL = importedGlobal;
+            saveGlobal();
+
+            JsonArray servers = root.has("servers") && root.get("servers").isJsonArray()
+                    ? root.getAsJsonArray("servers")
+                    : new JsonArray();
+
+            for (JsonElement element : servers) {
+                if (element == null || !element.isJsonObject()) {
+                    continue;
+                }
+
+                JsonObject serverObject = element.getAsJsonObject();
+                ServerConfig server = serverObject.has("server") && serverObject.get("server").isJsonObject()
+                        ? GSON.fromJson(serverObject.get("server"), ServerConfig.class)
+                        : new ServerConfig();
+                if (server == null) {
+                    server = new ServerConfig();
+                }
+
+                String serverKey = serverObject.has("serverKey")
+                        ? serverObject.get("serverKey").getAsString()
+                        : server.serverKey;
+                if (serverKey == null || serverKey.isBlank()) {
+                    continue;
+                }
+                server.serverKey = serverKey;
+
+                if (serverObject.has("tabs") && serverObject.get("tabs").isJsonArray()) {
+                    server.tabs = new ArrayList<>();
+                    for (JsonElement tabElement : serverObject.getAsJsonArray("tabs")) {
+                        TabConfig tab = GSON.fromJson(tabElement, TabConfig.class);
+                        if (tab != null && tab.id != null && !tab.id.isBlank()) {
+                            server.tabs.add(tab);
+                        }
+                    }
+                }
+
+                ensureAllTab(server);
+                write(serverFile(serverKey), server);
+                if (server.tabs != null) {
+                    for (TabConfig tab : server.tabs) {
+                        saveTab(serverKey, tab);
+                    }
+                }
+            }
+
+            return importFile.toString();
+        } catch (Throwable ignored) {
+            return "";
+        }
     }
 
     private static <T> T read(Path file, Class<T> type, T def) {

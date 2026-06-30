@@ -53,6 +53,12 @@ public class ChatWindow {
     public final List<Text> lines = new ArrayList<>();
     public final List<Entry> entries = new ArrayList<>();
     private boolean historyFullRewriteRequired = true;
+    private boolean historyReplaceLatestRequired = false;
+
+    private final List<RowRef> cachedAllRows = new ArrayList<>();
+    private int cachedAllRowsWidth = -1;
+    private int cachedAllRowsEntryCount = 0;
+    private boolean allRowsDirty = true;
 
     private Text lastOriginalMessage = null;
     private String lastSender = null;
@@ -87,44 +93,56 @@ public class ChatWindow {
         long now = System.currentTimeMillis();
         String effectiveStackKey = stackKey == null ? msg.getString() : stackKey;
 
-        String sender = extractSender(msg);
-
         if (!entries.isEmpty() && equalsSafe(lastStackKey, effectiveStackKey)) {
             Entry last = entries.get(entries.size() - 1);
             last.repeatCount++;
 
-            // Keep the newest visible message text for stacked repeats.
-            // The stack key ignores leading timestamps, but the rendered entry should
-            // use the latest message text/timestamp, e.g. "16:32 hi" + "16:33 hi"
-            // becomes "16:33 hi (*2)" and then "16:33 hi (*3)".
-            last.original = msg.copy();
+            Text copied = msg.copy();
+            last.original = copied;
             last.serializedJson = null;
             last.createdAtMs = now;
             last.dirty = true;
-            historyFullRewriteRequired = true;
+            allRowsDirty = true;
+            historyReplaceLatestRequired = true;
 
-            rebuildRenderedLines();
+            if (!lines.isEmpty()) {
+                lines.set(lines.size() - 1, buildRenderText(last));
+            } else {
+                rebuildRenderedLines();
+            }
             restoreScrollAfterAppend(previousRowCount, preserveScrolledView);
 
-            lastOriginalMessage = msg.copy();
-            lastSender = sender;
+            lastOriginalMessage = copied;
+            lastSender = null;
             lastStackKey = effectiveStackKey;
             return;
         }
 
-        entries.add(new Entry(msg.copy(), 1, now, null));
+        Text copied = msg.copy();
+        Entry entry = new Entry(copied, 1, now, null);
+        entries.add(entry);
+        lines.add(buildRenderText(entry));
+        allRowsDirty = true;
 
         if (entries.size() > MAX_MESSAGES) {
             int remove = entries.size() - MAX_MESSAGES;
             entries.subList(0, remove).clear();
+            if (remove <= lines.size()) {
+                lines.subList(0, remove).clear();
+            } else {
+                rebuildRenderedLines();
+            }
+            cachedAllRows.clear();
+            cachedAllRowsEntryCount = 0;
+            allRowsDirty = true;
             historyFullRewriteRequired = true;
+            historyReplaceLatestRequired = false;
         }
 
-        lastOriginalMessage = msg.copy();
-        lastSender = sender;
+        lastOriginalMessage = copied;
+        lastSender = null;
         lastStackKey = effectiveStackKey;
 
-        rebuildRenderedLines();
         restoreScrollAfterAppend(previousRowCount, preserveScrolledView);
     }
 
@@ -157,7 +175,11 @@ public class ChatWindow {
     public void clearMessages() {
         entries.clear();
         lines.clear();
+        cachedAllRows.clear();
+        cachedAllRowsEntryCount = 0;
+        allRowsDirty = true;
         historyFullRewriteRequired = true;
+        historyReplaceLatestRequired = false;
         scrollOffset = 0;
         breakStack();
     }
@@ -180,7 +202,11 @@ public class ChatWindow {
         }
 
         rebuildRenderedLines();
+        cachedAllRows.clear();
+        cachedAllRowsEntryCount = 0;
+        allRowsDirty = true;
         historyFullRewriteRequired = false;
+        historyReplaceLatestRequired = false;
         scrollOffset = 0;
         breakStack();
     }
@@ -228,11 +254,21 @@ public class ChatWindow {
     public boolean consumeHistoryFullRewriteRequired() {
         boolean value = historyFullRewriteRequired;
         historyFullRewriteRequired = false;
+        if (value) {
+            historyReplaceLatestRequired = false;
+        }
+        return value;
+    }
+
+    public boolean consumeHistoryReplaceLatestRequired() {
+        boolean value = historyReplaceLatestRequired;
+        historyReplaceLatestRequired = false;
         return value;
     }
 
     public void markHistoryFullRewriteRequired() {
         historyFullRewriteRequired = true;
+        historyReplaceLatestRequired = false;
     }
 
 
@@ -317,50 +353,101 @@ public class ChatWindow {
                 (int) ((w - PADDING_X * 2) / clamp(textScale))
         );
 
-        List<RowRef> rows = new ArrayList<>();
-
-        for (Entry entry : entries) {
-            if (entry.dirty || entry.cachedWrapWidth != maxWidth) {
-                entry.cachedRows.clear();
-
-                Text renderText = buildRenderText(entry);
-                OrderedText repeatSuffix = entry.repeatCount > 1 ? buildRepeatSuffixOrdered(entry.repeatCount) : null;
-                int suffixWidth = repeatSuffix == null ? 0 : Math.max(0, tr.getWidth(repeatSuffix));
-                int wrapWidth = repeatSuffix == null ? maxWidth : Math.max(20, maxWidth - suffixWidth);
-
-                List<OrderedText> entryRows = tr.wrapLines(renderText, wrapWidth);
-                if (entryRows == null || entryRows.isEmpty()) {
-                    entryRows = new ArrayList<>();
-                    entryRows.add(OrderedText.styledForwardsVisitedString(
-                            renderText.getString(),
-                            renderText.getStyle()
-                    ));
-                } else {
-                    entryRows = new ArrayList<>(entryRows);
-                }
-
-                if (repeatSuffix != null) {
-                    int lastIndex = entryRows.size() - 1;
-                    entryRows.set(lastIndex, appendOrderedText(entryRows.get(lastIndex), repeatSuffix));
-                }
-
-                for (OrderedText ordered : entryRows) {
-                    entry.cachedRows.add(new RowRef(
-                            entry.original,
-                            ordered,
-                            buildGlyphRuns(tr, ordered),
-                            entry.createdAtMs
-                    ));
-                }
-
-                entry.cachedWrapWidth = maxWidth;
-                entry.dirty = false;
-            }
-
-            rows.addAll(entry.cachedRows);
+        if (!allRowsDirty && cachedAllRowsWidth == maxWidth && cachedAllRowsEntryCount == entries.size()) {
+            return cachedAllRows;
         }
 
-        return rows;
+        boolean sameWidth = cachedAllRowsWidth == maxWidth;
+
+        if (sameWidth && cachedAllRowsEntryCount == entries.size() - 1 && !entries.isEmpty()) {
+            Entry last = entries.get(entries.size() - 1);
+            rebuildCachedRows(tr, last, maxWidth);
+            cachedAllRows.addAll(last.cachedRows);
+            cachedAllRowsEntryCount = entries.size();
+            allRowsDirty = false;
+            return cachedAllRows;
+        }
+
+        if (sameWidth && cachedAllRowsEntryCount == entries.size() && !entries.isEmpty()) {
+            int dirtyIndex = -1;
+            int dirtyCount = 0;
+            for (int i = 0; i < entries.size(); i++) {
+                Entry entry = entries.get(i);
+                if (entry.dirty || entry.cachedWrapWidth != maxWidth) {
+                    dirtyIndex = i;
+                    dirtyCount++;
+                    if (dirtyCount > 1) {
+                        break;
+                    }
+                }
+            }
+
+            if (dirtyCount == 1 && dirtyIndex == entries.size() - 1) {
+                Entry last = entries.get(dirtyIndex);
+                int oldRowCount = last.cachedRows.size();
+                for (int i = 0; i < oldRowCount && !cachedAllRows.isEmpty(); i++) {
+                    cachedAllRows.remove(cachedAllRows.size() - 1);
+                }
+                rebuildCachedRows(tr, last, maxWidth);
+                cachedAllRows.addAll(last.cachedRows);
+                allRowsDirty = false;
+                return cachedAllRows;
+            }
+        }
+
+        cachedAllRows.clear();
+        for (Entry entry : entries) {
+            if (entry.dirty || entry.cachedWrapWidth != maxWidth) {
+                rebuildCachedRows(tr, entry, maxWidth);
+            }
+            cachedAllRows.addAll(entry.cachedRows);
+        }
+
+        cachedAllRowsWidth = maxWidth;
+        cachedAllRowsEntryCount = entries.size();
+        allRowsDirty = false;
+        return cachedAllRows;
+    }
+
+    private void rebuildCachedRows(TextRenderer tr, Entry entry, int maxWidth) {
+        if (entry == null) {
+            return;
+        }
+
+        entry.cachedRows.clear();
+
+        Text renderText = buildRenderText(entry);
+        OrderedText repeatSuffix = entry.repeatCount > 1 ? buildRepeatSuffixOrdered(entry.repeatCount) : null;
+        int suffixWidth = repeatSuffix == null ? 0 : Math.max(0, tr.getWidth(repeatSuffix));
+        int wrapWidth = repeatSuffix == null ? maxWidth : Math.max(20, maxWidth - suffixWidth);
+
+        List<OrderedText> entryRows = tr.wrapLines(renderText, wrapWidth);
+        if (entryRows == null || entryRows.isEmpty()) {
+            entryRows = new ArrayList<>();
+            entryRows.add(OrderedText.styledForwardsVisitedString(
+                    renderText.getString(),
+                    renderText.getStyle()
+            ));
+        } else {
+            entryRows = new ArrayList<>(entryRows);
+        }
+
+        if (repeatSuffix != null) {
+            int lastIndex = entryRows.size() - 1;
+            entryRows.set(lastIndex, appendOrderedText(entryRows.get(lastIndex), repeatSuffix));
+        }
+
+        for (OrderedText ordered : entryRows) {
+            entry.cachedRows.add(new RowRef(
+                    entry.original,
+                    ordered,
+                    buildGlyphRuns(tr, ordered),
+                    entry.createdAtMs
+            ));
+        }
+
+        entry.cachedWrapWidth = maxWidth;
+        entry.dirty = false;
     }
 
     private static OrderedText buildRepeatSuffixOrdered(int repeatCount) {

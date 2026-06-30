@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "multichatwindows",
-  "version": "1.5.3",
+  "version": "1.5.4",
   "name": "MultiChatWindows",
   "description": "Client-side multiple chat windows with server based configuration, profiles, filters, notifications and API mode.",
   "authors": [

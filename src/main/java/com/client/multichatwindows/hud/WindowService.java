@@ -550,7 +550,7 @@ public final class WindowService {
                     if (line == null || line.isBlank()) {
                         continue;
                     }
-                    encodedLines.add(java.util.Base64.getEncoder().encodeToString(line.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+                    encodedLines.add("A:" + java.util.Base64.getEncoder().encodeToString(line.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
                 }
 
                 java.nio.file.Files.write(
@@ -564,12 +564,14 @@ public final class WindowService {
                 return;
             }
 
+            boolean replaceLatest = window.consumeHistoryReplaceLatestRequired();
             String latest = window.latestJsonHistoryLine();
             if (latest == null || latest.isBlank()) {
                 return;
             }
 
-            String encodedLine = java.util.Base64.getEncoder().encodeToString(latest.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            String encodedLine = (replaceLatest ? "R:" : "A:")
+                    + java.util.Base64.getEncoder().encodeToString(latest.getBytes(java.nio.charset.StandardCharsets.UTF_8));
             java.nio.file.Files.write(
                     file,
                     java.util.List.of(encodedLine),
@@ -597,11 +599,30 @@ public final class WindowService {
                 if (encodedLine == null || encodedLine.isBlank()) {
                     continue;
                 }
+
+                String trimmed = encodedLine.trim();
+                boolean replaceLatest = false;
+                if (trimmed.startsWith("A:") || trimmed.startsWith("R:")) {
+                    replaceLatest = trimmed.startsWith("R:");
+                    trimmed = trimmed.substring(2);
+                }
+
+                String decoded;
                 try {
-                    byte[] bytes = java.util.Base64.getDecoder().decode(encodedLine.trim());
-                    decodedLines.add(new String(bytes, java.nio.charset.StandardCharsets.UTF_8));
+                    byte[] bytes = java.util.Base64.getDecoder().decode(trimmed);
+                    decoded = new String(bytes, java.nio.charset.StandardCharsets.UTF_8);
                 } catch (Exception ignored) {
-                    decodedLines.add(encodedLine);
+                    decoded = trimmed;
+                }
+
+                if (decoded == null || decoded.isBlank()) {
+                    continue;
+                }
+
+                if (replaceLatest && !decodedLines.isEmpty()) {
+                    decodedLines.set(decodedLines.size() - 1, decoded);
+                } else {
+                    decodedLines.add(decoded);
                 }
             }
             return decodedLines;

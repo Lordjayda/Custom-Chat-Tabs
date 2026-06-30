@@ -8,9 +8,17 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
 
+import org.lwjgl.PointerBuffer;
+import org.lwjgl.system.MemoryStack;
+import org.lwjgl.util.tinyfd.TinyFileDialogs;
+
+import java.nio.file.Path;
+import java.util.Locale;
+
 public class ConfigHomeScreen extends ScrollableDarkScreen {
     private final Screen parent;
     private GlobalConfig config;
+    private Text importExportStatus = Text.empty();
 
     public ConfigHomeScreen(Screen parent) {
         super(Text.translatable("multichatwindows.title"));
@@ -22,10 +30,42 @@ public class ConfigHomeScreen extends ScrollableDarkScreen {
         ConfigManager.init();
         config = ConfigManager.global();
         clearChildren();
-        int centerX = width / 2;
-        int y = 46;
 
-        addDrawableChild(new DarkButton(centerX - 110, y, 220, 20, Text.translatable(config.enabled ? "multichatwindows.enabled.on" : "multichatwindows.enabled.off"), () -> {
+        addDrawableChild(new DarkButton(8, 32, 90, 20, t("config_export"), () -> {
+            String selected = chooseConfigFile(false);
+            if (selected == null || selected.isBlank()) {
+                importExportStatus = t("export_cancelled");
+                return;
+            }
+
+            String path = ConfigManager.exportConfig(Path.of(selected));
+            importExportStatus = path == null || path.isBlank()
+                    ? t("export_failed")
+                    : t("export_success", path);
+        }));
+
+        addDrawableChild(new DarkButton(104, 32, 90, 20, t("config_import"), () -> {
+            String selected = chooseConfigFile(true);
+            if (selected == null || selected.isBlank()) {
+                importExportStatus = t("import_cancelled");
+                return;
+            }
+
+            String path = ConfigManager.importConfig(Path.of(selected));
+            if (path == null || path.isBlank()) {
+                importExportStatus = t("import_failed");
+                return;
+            }
+            config = ConfigManager.global();
+            com.client.multichatwindows.hud.WindowService.rebuildForCurrentServer();
+            importExportStatus = t("import_success", path);
+            init();
+        }));
+
+        int centerX = width / 2;
+        int y = 62;
+
+        addDrawableChild(new DarkButton(centerX - 110, y, 220, 20, t(config.enabled ? "enabled_on" : "enabled_off"), () -> {
             boolean wasEnabled = config.enabled;
             config.enabled = !config.enabled;
             ConfigManager.saveGlobal();
@@ -36,31 +76,32 @@ public class ConfigHomeScreen extends ScrollableDarkScreen {
         }));
         y += 26;
 
-        addDrawableChild(new DarkButton(centerX - 110, y, 220, 20, Text.translatable("multichatwindows.language.current", Text.translatable(langKey(config.language))), () -> {
+        addDrawableChild(new DarkButton(centerX - 110, y, 220, 20, t("language_current", languageName(config.language)), () -> {
             config.language = config.language == Language.EN_US ? Language.DE_DE : Language.EN_US;
             ConfigManager.saveGlobal();
+            importExportStatus = Text.empty();
             init();
         }));
         y += 26;
 
-        addDrawableChild(new DarkButton(centerX - 110, y, 220, 20, Text.translatable(config.autoAddServer ? "multichatwindows.auto_add_server.on" : "multichatwindows.auto_add_server.off"), () -> {
+        addDrawableChild(new DarkButton(centerX - 110, y, 220, 20, t(config.autoAddServer ? "auto_add_server_on" : "auto_add_server_off"), () -> {
             config.autoAddServer = !config.autoAddServer;
             ConfigManager.saveGlobal();
             init();
         }));
         y += 26;
 
-        addDrawableChild(new DarkButton(centerX - 110, y, 220, 20, Text.translatable("multichatwindows.servers.open"), () -> MinecraftClient.getInstance().setScreen(new ServersScreen(this))));
+        addDrawableChild(new DarkButton(centerX - 110, y, 220, 20, t("servers_open"), () -> MinecraftClient.getInstance().setScreen(new ServersScreen(this))));
         y += 26;
 
-        addDrawableChild(new DarkButton(centerX - 110, y, 220, 20, Text.translatable(config.debug ? "multichatwindows.debug.on" : "multichatwindows.debug.off"), () -> {
+        addDrawableChild(new DarkButton(centerX - 110, y, 220, 20, t(config.debug ? "debug_on" : "debug_off"), () -> {
             config.debug = !config.debug;
             ConfigManager.saveGlobal();
             init();
         }));
         y += 26;
 
-        addDrawableChild(new DarkButton(centerX - 110, y, 220, 20, Text.translatable(config.chatHistoryEnabled ? "multichatwindows.chat_history.on" : "multichatwindows.chat_history.off"), () -> {
+        addDrawableChild(new DarkButton(centerX - 110, y, 220, 20, t(config.chatHistoryEnabled ? "chat_history_on" : "chat_history_off"), () -> {
             config.chatHistoryEnabled = !config.chatHistoryEnabled;
             ConfigManager.saveGlobal();
             com.client.multichatwindows.hud.WindowService.rebuildForCurrentServer();
@@ -68,8 +109,89 @@ public class ConfigHomeScreen extends ScrollableDarkScreen {
         }));
         y += 26;
 
-        addDrawableChild(new DarkButton(centerX - 110, y, 220, 20, Text.translatable("multichatwindows.config_background.open"), () -> MinecraftClient.getInstance().setScreen(new ConfigBackgroundScreen(this))));
-        addDrawableChild(new DarkButton(centerX - 110, height - 28, 220, 20, Text.translatable("multichatwindows.back"), () -> MinecraftClient.getInstance().setScreen(parent)));
+        addDrawableChild(new DarkButton(centerX - 110, y, 220, 20, t("config_background_open"), () -> MinecraftClient.getInstance().setScreen(new ConfigBackgroundScreen(this))));
+        addDrawableChild(new DarkButton(centerX - 110, height - 28, 220, 20, t("back"), () -> MinecraftClient.getInstance().setScreen(parent)));
+    }
+
+    private String chooseConfigFile(boolean importMode) {
+        try (MemoryStack stack = MemoryStack.stackPush()) {
+            PointerBuffer filters = stack.pointers(stack.UTF8("*.json"));
+            String fallback = ConfigManager.exportFile().toAbsolutePath().normalize().toString();
+
+            String selected = importMode
+                    ? TinyFileDialogs.tinyfd_openFileDialog(
+                            "MultiChatWindows Config importieren",
+                            fallback,
+                            filters,
+                            "JSON Config (*.json)",
+                            false
+                    )
+                    : TinyFileDialogs.tinyfd_saveFileDialog(
+                            "MultiChatWindows Config exportieren",
+                            fallback,
+                            filters,
+                            "JSON Config (*.json)"
+                    );
+
+            if (selected == null || selected.isBlank()) {
+                return "";
+            }
+
+            if (!importMode && !selected.toLowerCase(Locale.ROOT).endsWith(".json")) {
+                selected = selected + ".json";
+            }
+
+            return Path.of(selected).toAbsolutePath().normalize().toString();
+        } catch (Throwable ignored) {
+            return "";
+        }
+    }
+
+    
+
+    private Text t(String key, Object... args) {
+        return Text.literal(format(message(key), args));
+    }
+
+    private String message(String key) {
+        boolean de = config != null && config.language == Language.DE_DE;
+        return switch (key) {
+            case "title" -> "Multi Chat Windows";
+            case "config_subtitle" -> de ? "Einstellungen" : "Settings";
+            case "config_export" -> "Config Export";
+            case "config_import" -> "Config Import";
+            case "enabled_on" -> de ? "Aktiv: AN" : "Enabled: ON";
+            case "enabled_off" -> de ? "Aktiv: AUS" : "Enabled: OFF";
+            case "language_current" -> de ? "Sprache: %s" : "Language: %s";
+            case "auto_add_server_on" -> de ? "Server automatisch hinzufügen: AN" : "Auto add server: ON";
+            case "auto_add_server_off" -> de ? "Server automatisch hinzufügen: AUS" : "Auto add server: OFF";
+            case "servers_open" -> de ? "Server" : "Servers";
+            case "debug_on" -> de ? "Debug: AN" : "Debug: ON";
+            case "debug_off" -> de ? "Debug: AUS" : "Debug: OFF";
+            case "chat_history_on" -> de ? "Chat-History: AN" : "Chat history: ON";
+            case "chat_history_off" -> de ? "Chat-History: AUS" : "Chat history: OFF";
+            case "config_background_open" -> de ? "Config-Hintergrund" : "Config background";
+            case "back" -> de ? "Zurück" : "Back";
+            case "export_cancelled" -> de ? "Export abgebrochen" : "Export cancelled";
+            case "export_failed" -> de ? "Config-Export fehlgeschlagen" : "Config export failed";
+            case "export_success" -> de ? "Exportiert: %s" : "Exported: %s";
+            case "import_cancelled" -> de ? "Import abgebrochen" : "Import cancelled";
+            case "import_failed" -> de ? "Import fehlgeschlagen: Datei fehlt oder ist ungültig" : "Import failed: file missing or invalid";
+            case "import_success" -> de ? "Importiert: %s" : "Imported: %s";
+            default -> key;
+        };
+    }
+
+    private String format(String template, Object... args) {
+        try {
+            return String.format(template, args);
+        } catch (Throwable ignored) {
+            return template;
+        }
+    }
+
+    private String languageName(Language language) {
+        return language == Language.DE_DE ? "Deutsch" : "Englisch";
     }
 
     private String langKey(Language language) {
@@ -87,7 +209,10 @@ public class ConfigHomeScreen extends ScrollableDarkScreen {
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         super.render(context, mouseX, mouseY, delta);
-        context.drawCenteredTextWithShadow(textRenderer, Text.translatable("multichatwindows.title"), width / 2, 14, 0xFFFFFFFF);
-        context.drawCenteredTextWithShadow(textRenderer, Text.translatable("multichatwindows.config.subtitle"), width / 2, 28, 0xFFB0B0B0);
+        context.drawCenteredTextWithShadow(textRenderer, t("title"), width / 2, 14, 0xFFFFFFFF);
+        context.drawCenteredTextWithShadow(textRenderer, t("config_subtitle"), width / 2, 28, 0xFFB0B0B0);
+        if (importExportStatus != null && !importExportStatus.getString().isBlank()) {
+            context.drawTextWithShadow(textRenderer, importExportStatus, 8, 56, 0xFFB0FFB0);
+        }
     }
 }
