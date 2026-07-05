@@ -113,6 +113,30 @@ public final class WindowService {
         }
     }
 
+    public static void trimServerMessagesToLast(String serverKey, int keep) {
+        String key = serverKey == null || serverKey.isBlank() ? currentServerKey() : serverKey;
+        int safeKeep = Math.max(0, keep);
+        ServerConfig serverConfig = ConfigManager.getOrCreateServer(key);
+
+        if (key.equals(currentServerKey())) {
+            for (ChatWindow window : WINDOWS.values()) {
+                if (window != null) {
+                    window.trimToLastMessages(safeKeep);
+                    saveHistoryForWindow(key, window);
+                }
+            }
+        }
+
+        if (serverConfig.tabs != null) {
+            for (TabConfig tab : serverConfig.tabs) {
+                if (tab == null || tab.id == null || tab.id.isBlank()) {
+                    continue;
+                }
+                trimHistoryFileToLastMessages(key, tab.id, safeKeep);
+            }
+        }
+    }
+
     public static Collection<ChatWindow> allWindows() {
         ensureForCurrentServer();
         return WINDOWS.values();
@@ -583,6 +607,40 @@ public final class WindowService {
             if (window != null) {
                 window.markHistoryFullRewriteRequired();
             }
+        }
+    }
+
+    private static void trimHistoryFileToLastMessages(String serverKey, String windowId, int keep) {
+        if (!ConfigManager.global().chatHistoryEnabled) {
+            return;
+        }
+
+        try {
+            List<String> lines = readHistoryLines(serverKey, windowId);
+            int safeKeep = Math.max(0, keep);
+            int start = Math.max(0, lines.size() - safeKeep);
+            List<String> kept = lines.subList(start, lines.size());
+
+            java.nio.file.Path file = historyFile(serverKey, windowId);
+            java.nio.file.Files.createDirectories(file.getParent());
+
+            List<String> encodedLines = new ArrayList<>();
+            for (String line : kept) {
+                if (line == null || line.isBlank()) {
+                    continue;
+                }
+                encodedLines.add("A:" + java.util.Base64.getEncoder().encodeToString(line.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+            }
+
+            java.nio.file.Files.write(
+                    file,
+                    encodedLines,
+                    java.nio.charset.StandardCharsets.UTF_8,
+                    java.nio.file.StandardOpenOption.CREATE,
+                    java.nio.file.StandardOpenOption.TRUNCATE_EXISTING,
+                    java.nio.file.StandardOpenOption.WRITE
+            );
+        } catch (Exception ignored) {
         }
     }
 

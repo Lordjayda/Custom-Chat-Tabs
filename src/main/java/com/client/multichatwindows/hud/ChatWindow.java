@@ -184,6 +184,25 @@ public class ChatWindow {
         breakStack();
     }
 
+    public void trimToLastMessages(int keep) {
+        int safeKeep = Math.max(0, keep);
+        if (entries.size() <= safeKeep) {
+            return;
+        }
+
+        int remove = entries.size() - safeKeep;
+        entries.subList(0, remove).clear();
+
+        rebuildRenderedLines();
+        cachedAllRows.clear();
+        cachedAllRowsEntryCount = 0;
+        allRowsDirty = true;
+        historyFullRewriteRequired = true;
+        historyReplaceLatestRequired = false;
+        scrollOffset = Math.max(0, Math.min(scrollOffset, maxScrollOffset()));
+        breakStack();
+    }
+
     public void restoreJsonHistory(List<String> messages) {
         clearMessages();
         if (messages == null || messages.isEmpty()) {

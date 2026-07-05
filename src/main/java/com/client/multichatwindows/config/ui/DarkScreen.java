@@ -17,11 +17,15 @@ public class DarkScreen extends Screen {
     public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
         renderDarkBackground(ctx);
         super.render(ctx, mouseX, mouseY, delta);
+        ServerHistoryTrimButton.render(this, ctx, width, height, mouseX, mouseY);
         ConfigUiAutoSave.renderInputTooltip(this, ctx, mouseX, mouseY);
     }
 
     @Override
     public boolean mouseClicked(Click click, boolean doubled) {
+        if (ServerHistoryTrimButton.mouseClicked(this, width, height, click.x(), click.y(), click.button())) {
+            return true;
+        }
         boolean result = super.mouseClicked(click, doubled);
         ConfigUiAutoSave.commit(this);
         return result;
