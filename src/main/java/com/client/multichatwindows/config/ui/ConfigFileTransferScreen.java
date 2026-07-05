@@ -1,12 +1,6 @@
 package com.client.multichatwindows.config.ui;
 
 import com.client.multichatwindows.config.ConfigManager;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.text.Text;
-
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -15,6 +9,11 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 
 public class ConfigFileTransferScreen extends ScrollableDarkScreen {
     private static final int ROW_HEIGHT = 22;
@@ -25,12 +24,12 @@ public class ConfigFileTransferScreen extends ScrollableDarkScreen {
 
     private Path currentDir;
     private String selectedPath;
-    private TextFieldWidget pathField;
-    private Text status = Text.empty();
+    private EditBox pathField;
+    private Component status = Component.empty();
     private int scrollOffset = 0;
 
     public ConfigFileTransferScreen(Screen parent, boolean importMode) {
-        super(Text.literal(importMode ? "Config Import" : "Config Export"));
+        super(Component.literal(importMode ? "Config Import" : "Config Export"));
         this.parent = parent;
         this.importMode = importMode;
 
@@ -41,7 +40,7 @@ public class ConfigFileTransferScreen extends ScrollableDarkScreen {
 
     @Override
     protected void init() {
-        clearChildren();
+        clearWidgets();
         ConfigManager.init();
 
         int centerX = width / 2;
@@ -49,17 +48,17 @@ public class ConfigFileTransferScreen extends ScrollableDarkScreen {
         int left = centerX - fieldWidth / 2;
         int y = 48;
 
-        pathField = new TextFieldWidget(textRenderer, left, y, fieldWidth, 22, Text.literal("Config-Datei"));
+        pathField = new EditBox(font, left, y, fieldWidth, 22, Component.literal("Config-Datei"));
         pathField.setMaxLength(4096);
-        pathField.setText(selectedPath == null ? "" : selectedPath);
-        pathField.setChangedListener(value -> selectedPath = ConfigManager.normalizeUserPathText(value));
-        addDrawableChild(pathField);
+        pathField.setValue(selectedPath == null ? "" : selectedPath);
+        pathField.setResponder(value -> selectedPath = ConfigManager.normalizeUserPathText(value));
+        addRenderableWidget(pathField);
         y += 28;
 
-        addDrawableChild(new DarkButton(left, y, 90, 20, Text.literal("Ordner öffnen"), () -> {
+        addRenderableWidget(new DarkButton(left, y, 90, 20, Component.literal("Ordner öffnen"), () -> {
             Path path = pathFromField();
             if (path == null) {
-                status = Text.literal("Ungültiger Pfad");
+                status = Component.literal("Ungültiger Pfad");
                 return;
             }
             Path dir = Files.isDirectory(path) ? path : path.getParent();
@@ -68,11 +67,11 @@ public class ConfigFileTransferScreen extends ScrollableDarkScreen {
                 scrollOffset = 0;
                 init();
             } else {
-                status = Text.literal("Ordner nicht gefunden");
+                status = Component.literal("Ordner nicht gefunden");
             }
         }));
 
-        addDrawableChild(new DarkButton(left + 96, y, 70, 20, Text.literal("Hoch"), () -> {
+        addRenderableWidget(new DarkButton(left + 96, y, 70, 20, Component.literal("Hoch"), () -> {
             if (currentDir != null && currentDir.getParent() != null) {
                 currentDir = currentDir.getParent().toAbsolutePath().normalize();
                 scrollOffset = 0;
@@ -80,15 +79,15 @@ public class ConfigFileTransferScreen extends ScrollableDarkScreen {
             }
         }));
 
-        addDrawableChild(new DarkButton(left + 172, y, 90, 20, Text.literal("Config"), () -> {
+        addRenderableWidget(new DarkButton(left + 172, y, 90, 20, Component.literal("Config"), () -> {
             currentDir = ConfigManager.basePath().toAbsolutePath().normalize();
             scrollOffset = 0;
             init();
         }));
 
-        addDrawableChild(new DarkButton(left + 268, y, 90, 20, Text.literal("Neu laden"), () -> init()));
+        addRenderableWidget(new DarkButton(left + 268, y, 90, 20, Component.literal("Neu laden"), () -> init()));
 
-        addDrawableChild(new DarkButton(left + fieldWidth - 120, y, 120, 20, Text.literal(importMode ? "Importieren" : "Exportieren"), () -> {
+        addRenderableWidget(new DarkButton(left + fieldWidth - 120, y, 120, 20, Component.literal(importMode ? "Importieren" : "Exportieren"), () -> {
             if (importMode) {
                 importSelected();
             } else {
@@ -106,7 +105,7 @@ public class ConfigFileTransferScreen extends ScrollableDarkScreen {
             String name = entry.getFileName() == null ? entry.toString() : entry.getFileName().toString();
             String label = directory ? "[DIR] " + name : name;
             int rowY = y + (i - scrollOffset) * ROW_HEIGHT;
-            addDrawableChild(new DarkButton(left, rowY, fieldWidth, 20, Text.literal(label), () -> {
+            addRenderableWidget(new DarkButton(left, rowY, fieldWidth, 20, Component.literal(label), () -> {
                 if (Files.isDirectory(entry)) {
                     currentDir = entry.toAbsolutePath().normalize();
                     scrollOffset = 0;
@@ -116,7 +115,7 @@ public class ConfigFileTransferScreen extends ScrollableDarkScreen {
 
                 selectedPath = entry.toAbsolutePath().normalize().toString();
                 if (pathField != null) {
-                    pathField.setText(selectedPath);
+                    pathField.setValue(selectedPath);
                 }
 
                 if (importMode) {
@@ -125,8 +124,8 @@ public class ConfigFileTransferScreen extends ScrollableDarkScreen {
             }));
         }
 
-        addDrawableChild(new DarkButton(centerX - 130, height - 28, 260, 20, Text.translatable("multichatwindows.back"), () -> {
-            MinecraftClient.getInstance().setScreen(parent);
+        addRenderableWidget(new DarkButton(centerX - 130, height - 28, 260, 20, Component.translatable("multichatwindows.back"), () -> {
+            Minecraft.getInstance().setScreen(parent);
         }));
     }
 
@@ -151,7 +150,7 @@ public class ConfigFileTransferScreen extends ScrollableDarkScreen {
                     .comparing((Path p) -> !Files.isDirectory(p))
                     .thenComparing(p -> p.getFileName() == null ? p.toString().toLowerCase(Locale.ROOT) : p.getFileName().toString().toLowerCase(Locale.ROOT)));
         } catch (IOException ignored) {
-            status = Text.literal("Ordner kann nicht gelesen werden");
+            status = Component.literal("Ordner kann nicht gelesen werden");
         }
         return result;
     }
@@ -162,7 +161,7 @@ public class ConfigFileTransferScreen extends ScrollableDarkScreen {
     }
 
     private Path pathFromField() {
-        String raw = pathField == null ? selectedPath : pathField.getText();
+        String raw = pathField == null ? selectedPath : pathField.getValue();
         raw = ConfigManager.normalizeUserPathText(raw);
         if (raw == null || raw.isBlank()) {
             return null;
@@ -182,25 +181,25 @@ public class ConfigFileTransferScreen extends ScrollableDarkScreen {
     private void importSelected() {
         Path path = pathFromField();
         if (path == null || !Files.isRegularFile(path)) {
-            status = Text.literal("Import fehlgeschlagen: Datei nicht gefunden");
+            status = Component.literal("Import fehlgeschlagen: Datei nicht gefunden");
             return;
         }
 
         String imported = ConfigManager.importConfig(path);
         if (imported == null || imported.isBlank()) {
-            status = Text.literal("Import fehlgeschlagen: ungültige Config-Datei");
+            status = Component.literal("Import fehlgeschlagen: ungültige Config-Datei");
             return;
         }
 
         com.client.multichatwindows.hud.WindowService.rebuildForCurrentServer();
         selectedPath = path.toString();
-        status = Text.literal("Importiert: " + selectedPath);
+        status = Component.literal("Importiert: " + selectedPath);
     }
 
     private void exportSelected() {
         Path path = pathFromField();
         if (path == null) {
-            status = Text.literal("Export fehlgeschlagen: ungültiger Pfad");
+            status = Component.literal("Export fehlgeschlagen: ungültiger Pfad");
             return;
         }
 
@@ -210,19 +209,19 @@ public class ConfigFileTransferScreen extends ScrollableDarkScreen {
 
         String exported = ConfigManager.exportConfig(path);
         if (exported == null || exported.isBlank()) {
-            status = Text.literal("Export fehlgeschlagen");
+            status = Component.literal("Export fehlgeschlagen");
             return;
         }
 
         selectedPath = path.toString();
         if (pathField != null) {
-            pathField.setText(selectedPath);
+            pathField.setValue(selectedPath);
         }
         Path parent = path.getParent();
         if (parent != null) {
             currentDir = parent.toAbsolutePath().normalize();
         }
-        status = Text.literal("Exportiert: " + selectedPath);
+        status = Component.literal("Exportiert: " + selectedPath);
         init();
     }
 
@@ -241,16 +240,16 @@ public class ConfigFileTransferScreen extends ScrollableDarkScreen {
     }
 
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        super.render(context, mouseX, mouseY, delta);
-        context.drawCenteredTextWithShadow(textRenderer, Text.literal(importMode ? "Config importieren" : "Config exportieren"), width / 2, 14, 0xFFFFFFFF);
-        context.drawCenteredTextWithShadow(textRenderer, Text.literal("Klicke Ordner zum Öffnen oder JSON-Dateien zum Auswählen."), width / 2, 28, 0xFFB0B0B0);
+    public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+        super.extractRenderState(context, mouseX, mouseY, delta);
+        com.client.multichatwindows.util.GuiDrawHelper.centered(context, font, Component.literal(importMode ? "Config importieren" : "Config exportieren"), width / 2, 14, 0xFFFFFFFF);
+        com.client.multichatwindows.util.GuiDrawHelper.centered(context, font, Component.literal("Klicke Ordner zum Öffnen oder JSON-Dateien zum Auswählen."), width / 2, 28, 0xFFB0B0B0);
 
         String dir = currentDir == null ? "" : currentDir.toString();
-        context.drawTextWithShadow(textRenderer, Text.literal("Ordner: " + trimMiddle(dir, 100)), 12, 104, 0xFFB0B0B0);
+        com.client.multichatwindows.util.GuiDrawHelper.text(context, font, Component.literal("Ordner: " + trimMiddle(dir, 100)), 12, 104, 0xFFB0B0B0);
 
         if (status != null && !status.getString().isBlank()) {
-            context.drawCenteredTextWithShadow(textRenderer, status, width / 2, height - 48, 0xFFB0FFB0);
+            com.client.multichatwindows.util.GuiDrawHelper.centered(context, font, status, width / 2, height - 48, 0xFFB0FFB0);
         }
     }
 

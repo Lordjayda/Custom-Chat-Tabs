@@ -4,10 +4,10 @@ import com.client.multichatwindows.config.ConfigManager;
 import com.client.multichatwindows.config.model.NotificationConfig;
 import com.client.multichatwindows.config.model.ServerConfig;
 import com.client.multichatwindows.config.model.TabConfig;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 
 public class ScreenSelectionScreen extends ScrollableDarkScreen {
     private final Screen parent;
@@ -17,7 +17,7 @@ public class ScreenSelectionScreen extends ScrollableDarkScreen {
     private int scrollY = 0;
 
     public ScreenSelectionScreen(Screen parent, String serverKey, int notifIndex) {
-        super(Text.translatable("multichatwindows.notifications.screens.title"));
+        super(Component.translatable("multichatwindows.notifications.screens.title"));
         this.parent = parent;
         this.serverKey = serverKey;
         this.notifIndex = notifIndex;
@@ -25,13 +25,13 @@ public class ScreenSelectionScreen extends ScrollableDarkScreen {
 
     @Override
     protected void init() {
-        clearChildren();
+        clearWidgets();
         ServerConfig sc = ConfigManager.getOrCreateServer(serverKey);
         if (sc.notifications == null || notifIndex < 0 || notifIndex >= sc.notifications.size()) {
-            addDrawableChild(new DarkButton(
+            addRenderableWidget(new DarkButton(
                     width / 2 - 100, height - 28, 200, 20,
-                    Text.translatable("multichatwindows.back"),
-                    () -> MinecraftClient.getInstance().setScreen(parent)
+                    Component.translatable("multichatwindows.back"),
+                    () -> Minecraft.getInstance().setScreen(parent)
             ));
             return;
         }
@@ -57,9 +57,9 @@ public class ScreenSelectionScreen extends ScrollableDarkScreen {
             String label = (selected ? "✓ " : "✗ ") + (tab.name == null ? tabId : tab.name);
 
             if (y + 20 >= top && y <= bottom) {
-                addDrawableChild(new DarkButton(
+                addRenderableWidget(new DarkButton(
                         cx - 100, y, 200, 20,
-                        Text.literal(label),
+                        Component.literal(label),
                         () -> {
                             if (n.targetScreens.contains(tabId)) {
                                 n.targetScreens.removeIf(s -> s != null && s.equals(tabId));
@@ -75,12 +75,12 @@ public class ScreenSelectionScreen extends ScrollableDarkScreen {
             y += rowH;
         }
 
-        addDrawableChild(new DarkButton(
+        addRenderableWidget(new DarkButton(
                 cx - 100, height - 28, 200, 20,
-                Text.translatable("multichatwindows.back"),
+                Component.translatable("multichatwindows.back"),
                 () -> {
                     ConfigManager.saveServer(serverKey, sc);
-                    MinecraftClient.getInstance().setScreen(parent);
+                    Minecraft.getInstance().setScreen(parent);
                 }
         ));
     }
@@ -93,10 +93,10 @@ public class ScreenSelectionScreen extends ScrollableDarkScreen {
     }
 
     @Override
-    public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
-        super.render(ctx, mouseX, mouseY, delta);
-        ctx.drawCenteredTextWithShadow(textRenderer,
-                Text.translatable("multichatwindows.notifications.screens.title"),
+    public void extractRenderState(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
+        super.extractRenderState(ctx, mouseX, mouseY, delta);
+        com.client.multichatwindows.util.GuiDrawHelper.centered(ctx, font,
+                Component.translatable("multichatwindows.notifications.screens.title"),
                 width / 2, 14, 0xFFFFFFFF);
     }
 }

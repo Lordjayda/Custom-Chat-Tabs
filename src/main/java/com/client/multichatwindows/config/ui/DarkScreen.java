@@ -1,27 +1,26 @@
 package com.client.multichatwindows.config.ui;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.text.Text;
-
 import java.lang.reflect.Method;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.network.chat.Component;
 
 public class DarkScreen extends Screen {
-    protected DarkScreen(Text title) {
+    protected DarkScreen(Component title) {
         super(title);
     }
 
     @Override
-    public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
+    public void extractRenderState(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
         renderDarkBackground(ctx);
-        super.render(ctx, mouseX, mouseY, delta);
+        super.extractRenderState(ctx, mouseX, mouseY, delta);
         ConfigUiAutoSave.renderInputTooltip(this, ctx, mouseX, mouseY);
     }
 
     @Override
-    public boolean mouseClicked(Click click, boolean doubled) {
+    public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
         boolean result = super.mouseClicked(click, doubled);
         ConfigUiAutoSave.commit(this);
         return result;
@@ -33,13 +32,13 @@ public class DarkScreen extends Screen {
         super.removed();
     }
 
-    protected void renderDarkBackground(DrawContext ctx) {
+    protected void renderDarkBackground(GuiGraphicsExtractor ctx) {
         if (ConfigBackgroundRenderer.render(ctx, width, height)) {
             return;
         }
 
-        MinecraftClient mc = MinecraftClient.getInstance();
-        if (mc.getCurrentServerEntry() != null && tryRenderInGameBlur(ctx)) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.getCurrentServer() != null && tryRenderInGameBlur(ctx)) {
             ctx.fill(0, 0, width, height, 0x99000000);
             return;
         }
@@ -47,9 +46,9 @@ public class DarkScreen extends Screen {
         ctx.fill(0, 0, width, height, 0x55000000);
     }
 
-    private boolean tryRenderInGameBlur(DrawContext ctx) {
+    private boolean tryRenderInGameBlur(GuiGraphicsExtractor ctx) {
         try {
-            Method method = Screen.class.getDeclaredMethod("renderInGameBackground", DrawContext.class);
+            Method method = Screen.class.getDeclaredMethod("renderInGameBackground", GuiGraphicsExtractor.class);
             method.setAccessible(true);
             method.invoke(this, ctx);
             return true;

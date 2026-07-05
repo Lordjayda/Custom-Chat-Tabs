@@ -1,12 +1,12 @@
 package com.client.multichatwindows.util;
 
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
 
 public final class PathTextLinkifier {
     private PathTextLinkifier() {
     }
 
-    public static Text linkifyFolderPaths(Text input) {
-        return input == null ? Text.empty() : input.copy();
+    public static Component linkifyFolderPaths(Component input) {
+        return input == null ? Component.empty() : input.copy();
     }
 }

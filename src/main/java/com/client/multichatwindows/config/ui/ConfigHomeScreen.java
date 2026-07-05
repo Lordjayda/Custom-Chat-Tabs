@@ -3,25 +3,24 @@ package com.client.multichatwindows.config.ui;
 import com.client.multichatwindows.config.ConfigManager;
 import com.client.multichatwindows.config.model.GlobalConfig;
 import com.client.multichatwindows.config.model.Language;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.text.Text;
-
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.util.tinyfd.TinyFileDialogs;
 
 import java.nio.file.Path;
 import java.util.Locale;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 
 public class ConfigHomeScreen extends ScrollableDarkScreen {
     private final Screen parent;
     private GlobalConfig config;
-    private Text importExportStatus = Text.empty();
+    private Component importExportStatus = Component.empty();
 
     public ConfigHomeScreen(Screen parent) {
-        super(Text.translatable("multichatwindows.title"));
+        super(Component.translatable("multichatwindows.title"));
         this.parent = parent;
     }
 
@@ -29,9 +28,9 @@ public class ConfigHomeScreen extends ScrollableDarkScreen {
     protected void init() {
         ConfigManager.init();
         config = ConfigManager.global();
-        clearChildren();
+        clearWidgets();
 
-        addDrawableChild(new DarkButton(8, 32, 90, 20, t("config_export"), () -> {
+        addRenderableWidget(new DarkButton(8, 32, 90, 20, t("config_export"), () -> {
             String selected = chooseConfigFile(false);
             if (selected == null || selected.isBlank()) {
                 importExportStatus = t("export_cancelled");
@@ -44,7 +43,7 @@ public class ConfigHomeScreen extends ScrollableDarkScreen {
                     : t("export_success", path);
         }));
 
-        addDrawableChild(new DarkButton(104, 32, 90, 20, t("config_import"), () -> {
+        addRenderableWidget(new DarkButton(104, 32, 90, 20, t("config_import"), () -> {
             String selected = chooseConfigFile(true);
             if (selected == null || selected.isBlank()) {
                 importExportStatus = t("import_cancelled");
@@ -65,7 +64,7 @@ public class ConfigHomeScreen extends ScrollableDarkScreen {
         int centerX = width / 2;
         int y = 62;
 
-        addDrawableChild(new DarkButton(centerX - 110, y, 220, 20, t(config.enabled ? "enabled_on" : "enabled_off"), () -> {
+        addRenderableWidget(new DarkButton(centerX - 110, y, 220, 20, t(config.enabled ? "enabled_on" : "enabled_off"), () -> {
             boolean wasEnabled = config.enabled;
             config.enabled = !config.enabled;
             ConfigManager.saveGlobal();
@@ -76,32 +75,32 @@ public class ConfigHomeScreen extends ScrollableDarkScreen {
         }));
         y += 26;
 
-        addDrawableChild(new DarkButton(centerX - 110, y, 220, 20, t("language_current", languageName(config.language)), () -> {
+        addRenderableWidget(new DarkButton(centerX - 110, y, 220, 20, t("language_current", languageName(config.language)), () -> {
             config.language = config.language == Language.EN_US ? Language.DE_DE : Language.EN_US;
             ConfigManager.saveGlobal();
-            importExportStatus = Text.empty();
+            importExportStatus = Component.empty();
             init();
         }));
         y += 26;
 
-        addDrawableChild(new DarkButton(centerX - 110, y, 220, 20, t(config.autoAddServer ? "auto_add_server_on" : "auto_add_server_off"), () -> {
+        addRenderableWidget(new DarkButton(centerX - 110, y, 220, 20, t(config.autoAddServer ? "auto_add_server_on" : "auto_add_server_off"), () -> {
             config.autoAddServer = !config.autoAddServer;
             ConfigManager.saveGlobal();
             init();
         }));
         y += 26;
 
-        addDrawableChild(new DarkButton(centerX - 110, y, 220, 20, t("servers_open"), () -> MinecraftClient.getInstance().setScreen(new ServersScreen(this))));
+        addRenderableWidget(new DarkButton(centerX - 110, y, 220, 20, t("servers_open"), () -> Minecraft.getInstance().setScreen(new ServersScreen(this))));
         y += 26;
 
-        addDrawableChild(new DarkButton(centerX - 110, y, 220, 20, t(config.debug ? "debug_on" : "debug_off"), () -> {
+        addRenderableWidget(new DarkButton(centerX - 110, y, 220, 20, t(config.debug ? "debug_on" : "debug_off"), () -> {
             config.debug = !config.debug;
             ConfigManager.saveGlobal();
             init();
         }));
         y += 26;
 
-        addDrawableChild(new DarkButton(centerX - 110, y, 220, 20, t(config.chatHistoryEnabled ? "chat_history_on" : "chat_history_off"), () -> {
+        addRenderableWidget(new DarkButton(centerX - 110, y, 220, 20, t(config.chatHistoryEnabled ? "chat_history_on" : "chat_history_off"), () -> {
             config.chatHistoryEnabled = !config.chatHistoryEnabled;
             ConfigManager.saveGlobal();
             com.client.multichatwindows.hud.WindowService.rebuildForCurrentServer();
@@ -109,8 +108,8 @@ public class ConfigHomeScreen extends ScrollableDarkScreen {
         }));
         y += 26;
 
-        addDrawableChild(new DarkButton(centerX - 110, y, 220, 20, t("config_background_open"), () -> MinecraftClient.getInstance().setScreen(new ConfigBackgroundScreen(this))));
-        addDrawableChild(new DarkButton(centerX - 110, height - 28, 220, 20, t("back"), () -> MinecraftClient.getInstance().setScreen(parent)));
+        addRenderableWidget(new DarkButton(centerX - 110, y, 220, 20, t("config_background_open"), () -> Minecraft.getInstance().setScreen(new ConfigBackgroundScreen(this))));
+        addRenderableWidget(new DarkButton(centerX - 110, height - 28, 220, 20, t("back"), () -> Minecraft.getInstance().setScreen(parent)));
     }
 
     private String chooseConfigFile(boolean importMode) {
@@ -149,8 +148,8 @@ public class ConfigHomeScreen extends ScrollableDarkScreen {
 
     
 
-    private Text t(String key, Object... args) {
-        return Text.literal(format(message(key), args));
+    private Component t(String key, Object... args) {
+        return Component.literal(format(message(key), args));
     }
 
     private String message(String key) {
@@ -207,12 +206,12 @@ public class ConfigHomeScreen extends ScrollableDarkScreen {
     }
 
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        super.render(context, mouseX, mouseY, delta);
-        context.drawCenteredTextWithShadow(textRenderer, t("title"), width / 2, 14, 0xFFFFFFFF);
-        context.drawCenteredTextWithShadow(textRenderer, t("config_subtitle"), width / 2, 28, 0xFFB0B0B0);
+    public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+        super.extractRenderState(context, mouseX, mouseY, delta);
+        com.client.multichatwindows.util.GuiDrawHelper.centered(context, font, t("title"), width / 2, 14, 0xFFFFFFFF);
+        com.client.multichatwindows.util.GuiDrawHelper.centered(context, font, t("config_subtitle"), width / 2, 28, 0xFFB0B0B0);
         if (importExportStatus != null && !importExportStatus.getString().isBlank()) {
-            context.drawTextWithShadow(textRenderer, importExportStatus, 8, 56, 0xFFB0FFB0);
+            com.client.multichatwindows.util.GuiDrawHelper.text(context, font, importExportStatus, 8, 56, 0xFFB0FFB0);
         }
     }
 }

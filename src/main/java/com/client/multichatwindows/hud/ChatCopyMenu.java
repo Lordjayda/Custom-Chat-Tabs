@@ -2,13 +2,12 @@ package com.client.multichatwindows.hud;
 
 import com.client.multichatwindows.config.ConfigManager;
 import com.client.multichatwindows.util.TextJsonUtil;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.text.Text;
-
 import java.lang.reflect.Field;
 import java.util.Map;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.network.chat.Component;
 
 /**
  * Small in-chat copy menu for MultiChatWindows.
@@ -24,7 +23,7 @@ public final class ChatCopyMenu {
     private static final int PADDING_X = 3;
     private static final int PADDING_Y = 2;
 
-    private static Text targetMessage;
+    private static Component targetMessage;
     private static String targetPlain = "";
     private static String targetJson = "";
     private static String targetPlayer = "";
@@ -34,7 +33,7 @@ public final class ChatCopyMenu {
     }
 
     public static boolean open(double mouseX, double mouseY, int screenWidth, int screenHeight) {
-        Text message = WindowService.messageAt(mouseX, mouseY);
+        Component message = WindowService.messageAt(mouseX, mouseY);
         if (message == null) {
             close();
             return false;
@@ -46,17 +45,17 @@ public final class ChatCopyMenu {
         targetPlayer = guessPlayerName(targetPlain);
         targetTab = findTabNameAt(mouseX, mouseY);
 
-        TextRenderer textRenderer = MinecraftClient.getInstance().textRenderer;
+        Font textRenderer = Minecraft.getInstance().font;
         width = 46;
-        width = Math.max(width, textRenderer.getWidth(labelMessage()) + PADDING_X * 2);
+        width = Math.max(width, textRenderer.width(labelMessage()) + PADDING_X * 2);
         if (showJsonRow()) {
-            width = Math.max(width, textRenderer.getWidth(labelJson()) + PADDING_X * 2);
+            width = Math.max(width, textRenderer.width(labelJson()) + PADDING_X * 2);
         }
         if (!targetPlayer.isBlank()) {
-            width = Math.max(width, textRenderer.getWidth(labelPlayer()) + PADDING_X * 2);
+            width = Math.max(width, textRenderer.width(labelPlayer()) + PADDING_X * 2);
         }
         if (!targetTab.isBlank()) {
-            width = Math.max(width, textRenderer.getWidth(labelTab()) + PADDING_X * 2);
+            width = Math.max(width, textRenderer.width(labelTab()) + PADDING_X * 2);
         }
         width = Math.min(width, 96);
 
@@ -88,7 +87,7 @@ public final class ChatCopyMenu {
         return true;
     }
 
-    public static void render(DrawContext context, TextRenderer textRenderer) {
+    public static void render(GuiGraphicsExtractor context, Font textRenderer) {
         if (!visible) {
             return;
         }
@@ -101,21 +100,21 @@ public final class ChatCopyMenu {
         context.fill(x + width - 1, y, x + width, y + height, 0xFFFFFFFF);
 
         int drawY = y + PADDING_Y;
-        context.drawTextWithShadow(textRenderer, labelMessage(), x + PADDING_X, drawY, 0xFFFFFFFF);
+        com.client.multichatwindows.util.GuiDrawHelper.text(context, textRenderer, labelMessage(), x + PADDING_X, drawY, 0xFFFFFFFF);
         drawY += ROW_HEIGHT;
 
         if (showJsonRow()) {
-            context.drawTextWithShadow(textRenderer, labelJson(), x + PADDING_X, drawY, 0xFFFFFFFF);
+            com.client.multichatwindows.util.GuiDrawHelper.text(context, textRenderer, labelJson(), x + PADDING_X, drawY, 0xFFFFFFFF);
             drawY += ROW_HEIGHT;
         }
 
         if (!targetPlayer.isBlank()) {
-            context.drawTextWithShadow(textRenderer, labelPlayer(), x + PADDING_X, drawY, 0xFFFFFFFF);
+            com.client.multichatwindows.util.GuiDrawHelper.text(context, textRenderer, labelPlayer(), x + PADDING_X, drawY, 0xFFFFFFFF);
             drawY += ROW_HEIGHT;
         }
 
         if (!targetTab.isBlank()) {
-            context.drawTextWithShadow(textRenderer, labelTab(), x + PADDING_X, drawY, 0xFFFFFFFF);
+            com.client.multichatwindows.util.GuiDrawHelper.text(context, textRenderer, labelTab(), x + PADDING_X, drawY, 0xFFFFFFFF);
         }
     }
 
@@ -132,20 +131,20 @@ public final class ChatCopyMenu {
         targetTab = "";
     }
 
-    private static Text labelMessage() {
-        return Text.translatable("multichatwindows.copy_menu.message");
+    private static Component labelMessage() {
+        return Component.translatable("multichatwindows.copy_menu.message");
     }
 
-    private static Text labelJson() {
-        return Text.literal("Json");
+    private static Component labelJson() {
+        return Component.literal("Json");
     }
 
-    private static Text labelPlayer() {
-        return Text.translatable("multichatwindows.copy_menu.player");
+    private static Component labelPlayer() {
+        return Component.translatable("multichatwindows.copy_menu.player");
     }
 
-    private static Text labelTab() {
-        return Text.translatable("multichatwindows.copy_menu.tab");
+    private static Component labelTab() {
+        return Component.translatable("multichatwindows.copy_menu.tab");
     }
 
     private static boolean showJsonRow() {
@@ -189,7 +188,7 @@ public final class ChatCopyMenu {
             }
         }
 
-        MinecraftClient.getInstance().keyboard.setClipboard(value == null ? "" : value);
+        Minecraft.getInstance().keyboardHandler.setClipboard(value == null ? "" : value);
     }
 
     private static String guessPlayerName(String plain) {

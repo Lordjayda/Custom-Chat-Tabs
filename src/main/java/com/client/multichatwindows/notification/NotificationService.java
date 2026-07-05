@@ -4,12 +4,11 @@ import com.client.multichatwindows.config.model.DependencyRule;
 import com.client.multichatwindows.config.model.NotificationConfig;
 import com.client.multichatwindows.config.model.ServerConfig;
 import com.client.multichatwindows.util.EventLog;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.toast.SystemToast;
-import net.minecraft.text.Text;
-
 import java.util.HashMap;
 import java.util.Map;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.toasts.SystemToast;
+import net.minecraft.network.chat.Component;
 
 public final class NotificationService {
     private NotificationService() {
@@ -79,20 +78,20 @@ public final class NotificationService {
             EventLog.notified(serverKey, tabName, reason, plain);
             NotificationSoundPlayer.playNotification(notification);
 
-            MinecraftClient client = MinecraftClient.getInstance();
+            Minecraft client = Minecraft.getInstance();
             if (client == null) {
                 return;
             }
 
-            Text title = Text.translatable("multichatwindows.notifications.toast.title");
-            Text description;
+            Component title = Component.translatable("multichatwindows.notifications.toast.title");
+            Component description;
             if (notification.keyword != null && !notification.keyword.isBlank()) {
-                description = Text.translatable("multichatwindows.notifications.toast.keyword", notification.keyword.trim(), tabName);
+                description = Component.translatable("multichatwindows.notifications.toast.keyword", notification.keyword.trim(), tabName);
             } else {
-                description = Text.translatable("multichatwindows.notifications.toast.message", tabName);
+                description = Component.translatable("multichatwindows.notifications.toast.message", tabName);
             }
 
-            client.execute(() -> SystemToast.show(client.getToastManager(), SystemToast.Type.NARRATOR_TOGGLE, title, description));
+            client.execute(() -> SystemToast.addOrUpdate(client.getToastManager(), SystemToast.SystemToastId.NARRATOR_TOGGLE, title, description));
         }
     }
 }

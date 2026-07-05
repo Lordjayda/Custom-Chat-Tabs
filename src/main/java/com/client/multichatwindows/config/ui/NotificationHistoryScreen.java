@@ -2,15 +2,14 @@ package com.client.multichatwindows.config.ui;
 
 import com.client.multichatwindows.notification.NotificationEntry;
 import com.client.multichatwindows.notification.NotificationHistoryManager;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.text.Text;
-
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 
 public class NotificationHistoryScreen extends ScrollableDarkScreen {
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss").withZone(ZoneId.systemDefault());
@@ -19,13 +18,13 @@ public class NotificationHistoryScreen extends ScrollableDarkScreen {
     private int scrollY = 0;
 
     public NotificationHistoryScreen(Screen parent) {
-        super(Text.translatable("multichatwindows.notifications.history"));
+        super(Component.translatable("multichatwindows.notifications.history"));
         this.parent = parent;
     }
 
     @Override
     protected void init() {
-        clearChildren();
+        clearWidgets();
 
         List<NotificationEntry> entries = NotificationHistoryManager.all();
         int centerX = width / 2;
@@ -43,12 +42,12 @@ public class NotificationHistoryScreen extends ScrollableDarkScreen {
                     message = message.substring(0, 51) + "...";
                 }
                 String label = FORMATTER.format(Instant.ofEpochMilli(entry.timeMs)) + " | " + entry.screenName + " | " + message;
-                addDrawableChild(new DarkButton(centerX - 180, y, 360, 38, Text.literal(label), () -> MinecraftClient.getInstance().setScreen(parent)));
+                addRenderableWidget(new DarkButton(centerX - 180, y, 360, 38, Component.literal(label), () -> Minecraft.getInstance().setScreen(parent)));
             }
             y += rowHeight;
         }
 
-        addDrawableChild(new DarkButton(centerX - 100, height - 28, 200, 20, Text.translatable("multichatwindows.back"), () -> MinecraftClient.getInstance().setScreen(parent)));
+        addRenderableWidget(new DarkButton(centerX - 100, height - 28, 200, 20, Component.translatable("multichatwindows.back"), () -> Minecraft.getInstance().setScreen(parent)));
     }
 
     @Override
@@ -59,8 +58,8 @@ public class NotificationHistoryScreen extends ScrollableDarkScreen {
     }
 
     @Override
-    public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
-        super.render(ctx, mouseX, mouseY, delta);
-        ctx.drawCenteredTextWithShadow(textRenderer, Text.translatable("multichatwindows.notifications.history"), width / 2, 14, 0xFFFFFFFF);
+    public void extractRenderState(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
+        super.extractRenderState(ctx, mouseX, mouseY, delta);
+        com.client.multichatwindows.util.GuiDrawHelper.centered(ctx, font, Component.translatable("multichatwindows.notifications.history"), width / 2, 14, 0xFFFFFFFF);
     }
 }

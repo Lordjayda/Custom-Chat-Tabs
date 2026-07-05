@@ -2,12 +2,6 @@ package com.client.multichatwindows.mixin.client;
 
 import com.client.multichatwindows.hud.ChatCopyMenu;
 import com.client.multichatwindows.hud.WindowService;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.ChatScreen;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.text.Style;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -16,25 +10,31 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.lang.reflect.Method;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.network.chat.Style;
 
 @Mixin(ChatScreen.class)
 public class ChatScreenMixin {
 
     @Shadow
-    protected TextFieldWidget chatField;
+    protected EditBox input;
 
-    @Inject(method = "render", at = @At("TAIL"), require = 0)
-    private void mcw$renderCopyMenu(DrawContext context, int mouseX, int mouseY, float delta, CallbackInfo ci) {
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client == null || client.textRenderer == null) {
+    @Inject(method = "extractRenderState", at = @At("TAIL"), require = 0)
+    private void mcw$renderCopyMenu(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta, CallbackInfo ci) {
+        Minecraft client = Minecraft.getInstance();
+        if (client == null || client.font == null) {
             return;
         }
 
-        ChatCopyMenu.render(context, client.textRenderer);
+        ChatCopyMenu.render(context, client.font);
 
         Style hoverStyle = WindowService.styleAt(mouseX, mouseY);
         if (hoverStyle != null && hoverStyle.getHoverEvent() != null) {
-            context.drawHoverEvent(client.textRenderer, hoverStyle, mouseX, mouseY);
+            com.client.multichatwindows.util.GuiDrawHelper.hover(context, client.font, hoverStyle, mouseX, mouseY);
         }
     }
 
@@ -43,8 +43,8 @@ public class ChatScreenMixin {
         ChatCopyMenu.close();
     }
 
-    @Inject(method = "mouseClicked(Lnet/minecraft/client/gui/Click;Z)Z", at = @At("HEAD"), cancellable = true, require = 0)
-    private void mcw$mouseClickedClickObject(Click click, boolean doubled, CallbackInfoReturnable<Boolean> cir) {
+    @Inject(method = "mouseClicked(Lnet/minecraft/client/input/MouseButtonEvent;Z)Z", at = @At("HEAD"), cancellable = true, require = 0)
+    private void mcw$mouseClickedClickObject(MouseButtonEvent click, boolean doubled, CallbackInfoReturnable<Boolean> cir) {
         handleClick(click.x(), click.y(), click.button(), cir);
     }
 
@@ -63,9 +63,9 @@ public class ChatScreenMixin {
         }
 
         if (button == 1) {
-            MinecraftClient client = MinecraftClient.getInstance();
-            int screenWidth = client == null ? 320 : client.getWindow().getScaledWidth();
-            int screenHeight = client == null ? 240 : client.getWindow().getScaledHeight();
+            Minecraft client = Minecraft.getInstance();
+            int screenWidth = client == null ? 320 : client.getWindow().getGuiScaledWidth();
+            int screenHeight = client == null ? 240 : client.getWindow().getGuiScaledHeight();
 
             if (ChatCopyMenu.open(mouseX, mouseY, screenWidth, screenHeight)) {
                 cir.setReturnValue(true);
@@ -87,17 +87,17 @@ public class ChatScreenMixin {
 
         String suggestion = value;
 
-        if (chatField != null) {
-            chatField.setText(suggestion);
-            mcw$moveCursorToEnd(chatField, suggestion.length());
-            chatField.setFocused(true);
+        if (input != null) {
+            input.setValue(suggestion);
+            mcw$moveCursorToEnd(input, suggestion.length());
+            input.setFocused(true);
             return true;
         }
 
         return false;
     }
 
-    private void mcw$moveCursorToEnd(TextFieldWidget widget, int length) {
+    private void mcw$moveCursorToEnd(EditBox widget, int length) {
         if (widget == null) {
             return;
         }

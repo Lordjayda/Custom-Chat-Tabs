@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "multichatwindows",
-  "version": "1.5.4",
+  "version": "1.5.4+26.1.2",
   "name": "MultiChatWindows",
   "description": "Client-side multiple chat windows with server based configuration, profiles, filters, notifications and API mode.",
   "authors": [
@@ -31,15 +31,12 @@
     "multichatwindows.client.mixins.json"
   ],
   "depends": {
-    "minecraft": [
-      ">=1.21.10",
-      "<=1.21.11"
-    ],
+    "minecraft": "26.1.2",
     "fabricloader": ">=0.19.0",
-    "fabric-api": "*",
-    "modmenu": "*"
+    "fabric-api": ">=0.154.0",
+    "modmenu": ">=18.0.0-alpha.8"
   },
   "suggests": {
-    "cloth-config": "*"
+    "cloth-config": ">=26.1.154"
   }
 }

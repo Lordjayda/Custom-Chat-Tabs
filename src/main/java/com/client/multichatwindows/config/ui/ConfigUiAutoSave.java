@@ -3,14 +3,13 @@ package com.client.multichatwindows.config.ui;
 import com.client.multichatwindows.config.ConfigManager;
 import com.client.multichatwindows.config.model.ServerConfig;
 import com.client.multichatwindows.hud.WindowService;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.text.Text;
-
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 
 public final class ConfigUiAutoSave {
     private ConfigUiAutoSave() {
@@ -44,25 +43,25 @@ public final class ConfigUiAutoSave {
         }
     }
 
-    public static void renderInputTooltip(Screen screen, DrawContext context, int mouseX, int mouseY) {
+    public static void renderInputTooltip(Screen screen, GuiGraphicsExtractor context, int mouseX, int mouseY) {
         if (screen == null || context == null) {
             return;
         }
 
-        TextFieldWidget hovered = findHoveredTextField(screen, mouseX, mouseY);
+        EditBox hovered = findHoveredTextField(screen, mouseX, mouseY);
         if (hovered == null) {
             return;
         }
 
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client == null || client.textRenderer == null) {
+        Minecraft client = Minecraft.getInstance();
+        if (client == null || client.font == null) {
             return;
         }
 
-        Text fieldLabel = hovered.getMessage();
-        context.drawTooltip(
-                client.textRenderer,
-                Text.translatable("multichatwindows.tooltip.input.autosave", fieldLabel),
+        Component fieldLabel = hovered.getMessage();
+        context.setTooltipForNextFrame(
+                client.font,
+                Component.translatable("multichatwindows.tooltip.input.autosave", fieldLabel),
                 mouseX,
                 mouseY
         );
@@ -91,14 +90,14 @@ public final class ConfigUiAutoSave {
         }
     }
 
-    private static TextFieldWidget findHoveredTextField(Object owner, int mouseX, int mouseY) {
+    private static EditBox findHoveredTextField(Object owner, int mouseX, int mouseY) {
         Class<?> type = owner.getClass();
         while (type != null) {
             for (Field field : type.getDeclaredFields()) {
                 try {
                     field.setAccessible(true);
                     Object value = field.get(owner);
-                    if (value instanceof TextFieldWidget widget && widget.isMouseOver(mouseX, mouseY)) {
+                    if (value instanceof EditBox widget && widget.isMouseOver(mouseX, mouseY)) {
                         return widget;
                     }
                 } catch (Throwable ignored) {

@@ -1,14 +1,6 @@
 package com.client.multichatwindows.hud;
 
 import com.client.multichatwindows.util.TextJsonUtil;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.text.ClickEvent;
-import net.minecraft.text.HoverEvent;
-import net.minecraft.text.OrderedText;
-import net.minecraft.text.Style;
-import net.minecraft.text.Text;
-
 import java.awt.Desktop;
 import java.io.File;
 import java.lang.reflect.Field;
@@ -20,6 +12,13 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.Style;
+import net.minecraft.util.FormattedCharSequence;
 
 public class ChatWindow {
 
@@ -50,7 +49,7 @@ public class ChatWindow {
     public int outlineWidth = 1;
     public int outlineColor = 0xFFFFFF;
 
-    public final List<Text> lines = new ArrayList<>();
+    public final List<Component> lines = new ArrayList<>();
     public final List<Entry> entries = new ArrayList<>();
     private boolean historyFullRewriteRequired = true;
     private boolean historyReplaceLatestRequired = false;
@@ -60,7 +59,7 @@ public class ChatWindow {
     private int cachedAllRowsEntryCount = 0;
     private boolean allRowsDirty = true;
 
-    private Text lastOriginalMessage = null;
+    private Component lastOriginalMessage = null;
     private String lastSender = null;
     private String lastStackKey = null;
 
@@ -71,19 +70,19 @@ public class ChatWindow {
         }
     }
 
-    public void push(Text msg) {
+    public void push(Component msg) {
         push(msg, false);
     }
 
-    public void push(Text msg, boolean duplicateIgnored) {
+    public void push(Component msg, boolean duplicateIgnored) {
         pushInternal(msg, msg == null ? "" : msg.getString());
     }
 
-    public void push(Text msg, String stackKey) {
+    public void push(Component msg, String stackKey) {
         pushInternal(msg, stackKey);
     }
 
-    private void pushInternal(Text msg, String stackKey) {
+    private void pushInternal(Component msg, String stackKey) {
         if (msg == null) {
             return;
         }
@@ -97,7 +96,7 @@ public class ChatWindow {
             Entry last = entries.get(entries.size() - 1);
             last.repeatCount++;
 
-            Text copied = msg.copy();
+            Component copied = msg.copy();
             last.original = copied;
             last.serializedJson = null;
             last.createdAtMs = now;
@@ -118,7 +117,7 @@ public class ChatWindow {
             return;
         }
 
-        Text copied = msg.copy();
+        Component copied = msg.copy();
         Entry entry = new Entry(copied, 1, now, null);
         entries.add(entry);
         lines.add(buildRenderText(entry));
@@ -157,8 +156,8 @@ public class ChatWindow {
             return false;
         }
 
-        MinecraftClient mc = MinecraftClient.getInstance();
-        if (mc != null && mc.currentScreen instanceof net.minecraft.client.gui.screen.ChatScreen) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc != null && mc.screen instanceof net.minecraft.client.gui.screens.ChatScreen) {
             return true;
         }
 
@@ -197,7 +196,7 @@ public class ChatWindow {
             if (json == null || json.isBlank()) {
                 continue;
             }
-            Text restored = TextJsonUtil.fromJson(json);
+            Component restored = TextJsonUtil.fromJson(json);
             entries.add(new Entry(restored, 1, now, json));
         }
 
@@ -293,12 +292,12 @@ public class ChatWindow {
     }
 
     public List<RowRef> visibleRows() {
-        MinecraftClient mc = MinecraftClient.getInstance();
-        if (mc == null || mc.textRenderer == null) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc == null || mc.font == null) {
             return List.of();
         }
 
-        TextRenderer tr = mc.textRenderer;
+        Font tr = mc.font;
         List<RowRef> all = allRows(tr);
 
         if (all.isEmpty()) {
@@ -322,21 +321,21 @@ public class ChatWindow {
     }
 
     public int totalRowCount() {
-        MinecraftClient mc = MinecraftClient.getInstance();
-        if (mc == null || mc.textRenderer == null) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc == null || mc.font == null) {
             return Math.max(0, lines.size());
         }
 
-        return allRows(mc.textRenderer).size();
+        return allRows(mc.font).size();
     }
 
     public int visibleRowCapacity() {
-        MinecraftClient mc = MinecraftClient.getInstance();
-        if (mc == null || mc.textRenderer == null) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc == null || mc.font == null) {
             return 1;
         }
 
-        return Math.max(1, (h - PADDING_Y * 2) / scaledLineHeight(mc.textRenderer, clamp(textScale)));
+        return Math.max(1, (h - PADDING_Y * 2) / scaledLineHeight(mc.font, clamp(textScale)));
     }
 
     public int maxScrollOffset() {
@@ -347,7 +346,7 @@ public class ChatWindow {
         scrollOffset = Math.max(0, Math.min(scrollOffset, maxScrollOffset()));
     }
 
-    private List<RowRef> allRows(TextRenderer tr) {
+    private List<RowRef> allRows(Font tr) {
         int maxWidth = Math.max(
                 20,
                 (int) ((w - PADDING_X * 2) / clamp(textScale))
@@ -409,22 +408,22 @@ public class ChatWindow {
         return cachedAllRows;
     }
 
-    private void rebuildCachedRows(TextRenderer tr, Entry entry, int maxWidth) {
+    private void rebuildCachedRows(Font tr, Entry entry, int maxWidth) {
         if (entry == null) {
             return;
         }
 
         entry.cachedRows.clear();
 
-        Text renderText = buildRenderText(entry);
-        OrderedText repeatSuffix = entry.repeatCount > 1 ? buildRepeatSuffixOrdered(entry.repeatCount) : null;
-        int suffixWidth = repeatSuffix == null ? 0 : Math.max(0, tr.getWidth(repeatSuffix));
+        Component renderText = buildRenderText(entry);
+        FormattedCharSequence repeatSuffix = entry.repeatCount > 1 ? buildRepeatSuffixOrdered(entry.repeatCount) : null;
+        int suffixWidth = repeatSuffix == null ? 0 : Math.max(0, tr.width(repeatSuffix));
         int wrapWidth = repeatSuffix == null ? maxWidth : Math.max(20, maxWidth - suffixWidth);
 
-        List<OrderedText> entryRows = tr.wrapLines(renderText, wrapWidth);
+        List<FormattedCharSequence> entryRows = tr.split(renderText, wrapWidth);
         if (entryRows == null || entryRows.isEmpty()) {
             entryRows = new ArrayList<>();
-            entryRows.add(OrderedText.styledForwardsVisitedString(
+            entryRows.add(FormattedCharSequence.forward(
                     renderText.getString(),
                     renderText.getStyle()
             ));
@@ -437,7 +436,7 @@ public class ChatWindow {
             entryRows.set(lastIndex, appendOrderedText(entryRows.get(lastIndex), repeatSuffix));
         }
 
-        for (OrderedText ordered : entryRows) {
+        for (FormattedCharSequence ordered : entryRows) {
             entry.cachedRows.add(new RowRef(
                     entry.original,
                     ordered,
@@ -450,15 +449,15 @@ public class ChatWindow {
         entry.dirty = false;
     }
 
-    private static OrderedText buildRepeatSuffixOrdered(int repeatCount) {
-        return Text.literal(" (*" + repeatCount + ")")
-                .styled(s -> s.withColor(0x55FF55))
-                .asOrderedText();
+    private static FormattedCharSequence buildRepeatSuffixOrdered(int repeatCount) {
+        return Component.literal(" (*" + repeatCount + ")")
+                .withStyle(s -> s.withColor(0x55FF55))
+                .getVisualOrderText();
     }
 
-    private static OrderedText appendOrderedText(OrderedText first, OrderedText second) {
+    private static FormattedCharSequence appendOrderedText(FormattedCharSequence first, FormattedCharSequence second) {
         if (first == null) {
-            return second == null ? OrderedText.styledForwardsVisitedString("", Style.EMPTY) : second;
+            return second == null ? FormattedCharSequence.forward("", Style.EMPTY) : second;
         }
         if (second == null) {
             return first;
@@ -467,11 +466,11 @@ public class ChatWindow {
         return visitor -> first.accept(visitor) && second.accept((index, style, codePoint) -> visitor.accept(index, style, codePoint));
     }
 
-    private static Text buildRenderText(Entry entry) {
-        return entry == null || entry.original == null ? Text.empty() : entry.original.copy();
+    private static Component buildRenderText(Entry entry) {
+        return entry == null || entry.original == null ? Component.empty() : entry.original.copy();
     }
 
-    private static List<GlyphRun> buildGlyphRuns(TextRenderer tr, OrderedText ordered) {
+    private static List<GlyphRun> buildGlyphRuns(Font tr, FormattedCharSequence ordered) {
         List<GlyphRun> runs = new ArrayList<>();
 
         if (ordered == null) {
@@ -483,8 +482,8 @@ public class ChatWindow {
         final int[] runStart = {0};
 
         ordered.accept((index, style, codePoint) -> {
-            OrderedText single = OrderedText.styled(codePoint, style);
-            int width = Math.max(0, tr.getWidth(single));
+            FormattedCharSequence single = FormattedCharSequence.codepoint(codePoint, style);
+            int width = Math.max(0, tr.width(single));
 
             if (!Objects.equals(currentStyle[0], style)) {
                 if (currentStyle[0] != null && cursorX[0] > runStart[0]) {
@@ -521,8 +520,8 @@ public class ChatWindow {
     }
 
     public RowRef rowAt(double mouseX, double mouseY) {
-        MinecraftClient mc = MinecraftClient.getInstance();
-        if (mc == null || mc.textRenderer == null || !contains(mouseX, mouseY)) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc == null || mc.font == null || !contains(mouseX, mouseY)) {
             return null;
         }
 
@@ -532,7 +531,7 @@ public class ChatWindow {
         }
 
         float scale = clamp(textScale);
-        int lineHeight = scaledLineHeight(mc.textRenderer, scale);
+        int lineHeight = scaledLineHeight(mc.font, scale);
         double renderedTop = renderedFirstLineY(rows.size(), lineHeight, scale);
 
         for (int i = 0; i < rows.size(); i++) {
@@ -548,8 +547,8 @@ public class ChatWindow {
     }
 
     public Style styleAt(double mouseX, double mouseY) {
-        MinecraftClient mc = MinecraftClient.getInstance();
-        if (mc == null || mc.textRenderer == null) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc == null || mc.font == null) {
             return null;
         }
 
@@ -566,7 +565,7 @@ public class ChatWindow {
             return null;
         }
 
-        Style vanillaStyle = resolveStyleWithTextHandler(mc.textRenderer, row.ordered, localX);
+        Style vanillaStyle = resolveStyleWithTextHandler(mc.font, row.ordered, localX);
         if (vanillaStyle != null) {
             return vanillaStyle;
         }
@@ -596,12 +595,12 @@ public class ChatWindow {
             return false;
         }
 
-        MinecraftClient mc = MinecraftClient.getInstance();
+        Minecraft mc = Minecraft.getInstance();
         if (mc == null) {
             return false;
         }
 
-        switch (click.getAction()) {
+        switch (click.action()) {
             case OPEN_URL:
                 return openUrl(value);
 
@@ -609,8 +608,8 @@ public class ChatWindow {
                 return openFile(value);
 
             case RUN_COMMAND:
-                if (mc.player != null && mc.player.networkHandler != null) {
-                    mc.player.networkHandler.sendChatCommand(
+                if (mc.player != null && mc.player.connection != null) {
+                    mc.player.connection.sendCommand(
                             value.replaceFirst("^/", "")
                     );
                     return true;
@@ -618,14 +617,14 @@ public class ChatWindow {
                 return false;
 
             case SUGGEST_COMMAND:
-                if (mc.inGameHud != null && mc.inGameHud.getChatHud() != null) {
-                    mc.inGameHud.getChatHud().addToMessageHistory(value);
+                if (mc.gui != null && mc.gui.getChat() != null) {
+                    mc.gui.getChat().addRecentChat(value);
                     return true;
                 }
                 return false;
 
             case COPY_TO_CLIPBOARD:
-                mc.keyboard.setClipboard(value);
+                mc.keyboardHandler.setClipboard(value);
                 return true;
 
             default:
@@ -633,7 +632,7 @@ public class ChatWindow {
         }
     }
 
-    public Text getHoverText(double mouseX, double mouseY) {
+    public Component getHoverText(double mouseX, double mouseY) {
         Style style = styleAt(mouseX, mouseY);
         if (style == null) {
             return null;
@@ -644,7 +643,7 @@ public class ChatWindow {
             return null;
         }
 
-        Text text = tryExtractHoverTextViaMethod(hover);
+        Component text = tryExtractHoverTextViaMethod(hover);
         if (text != null) {
             return text;
         }
@@ -676,7 +675,7 @@ public class ChatWindow {
         }
 
         try {
-            Object os = net.minecraft.util.Util.getOperatingSystem();
+            Object os = net.minecraft.util.Util.getPlatform();
             for (Method method : os.getClass().getMethods()) {
                 if (!method.getName().equals("open") || method.getParameterCount() != 1) {
                     continue;
@@ -696,7 +695,7 @@ public class ChatWindow {
         }
 
         try {
-            net.minecraft.util.Util.getOperatingSystem().open(url);
+            net.minecraft.util.Util.getPlatform().openUri(url);
             return true;
         } catch (Exception ignored) {
         }
@@ -722,7 +721,7 @@ public class ChatWindow {
         }
 
         try {
-            net.minecraft.util.Util.getOperatingSystem().open(path.toUri());
+            net.minecraft.util.Util.getPlatform().openUri(path.toUri());
             return true;
         } catch (Exception ignored) {
         }
@@ -1191,8 +1190,8 @@ public class ChatWindow {
         return value.toString();
     }
 
-    private Text tryExtractHoverTextViaMethod(HoverEvent hover) {
-        Text result = null;
+    private Component tryExtractHoverTextViaMethod(HoverEvent hover) {
+        Component result = null;
 
         try {
             Method getAction = hover.getClass().getMethod("getAction");
@@ -1207,7 +1206,7 @@ public class ChatWindow {
                 }
 
                 Object value = m.invoke(hover, action);
-                if (value instanceof Text text) {
+                if (value instanceof Component text) {
                     result = text;
                     break;
                 }
@@ -1218,8 +1217,8 @@ public class ChatWindow {
         return result;
     }
 
-    private Text tryExtractHoverTextViaFields(HoverEvent hover) {
-        Text result = null;
+    private Component tryExtractHoverTextViaFields(HoverEvent hover) {
+        Component result = null;
 
         try {
             for (Field f : hover.getClass().getDeclaredFields()) {
@@ -1228,7 +1227,7 @@ public class ChatWindow {
                 }
                 f.setAccessible(true);
                 Object v = f.get(hover);
-                if (v instanceof Text text) {
+                if (v instanceof Component text) {
                     result = text;
                     break;
                 }
@@ -1239,13 +1238,13 @@ public class ChatWindow {
         return result;
     }
 
-    private static Style resolveStyleWithTextHandler(TextRenderer textRenderer, OrderedText ordered, int localX) {
+    private static Style resolveStyleWithTextHandler(Font textRenderer, FormattedCharSequence ordered, int localX) {
         if (textRenderer == null || ordered == null) {
             return null;
         }
 
         try {
-            Object handler = textRenderer.getTextHandler();
+            Object handler = textRenderer.getSplitter();
             if (handler == null) {
                 return null;
             }
@@ -1259,7 +1258,7 @@ public class ChatWindow {
                 }
 
                 Class<?>[] types = method.getParameterTypes();
-                if (!types[0].isAssignableFrom(OrderedText.class) && !OrderedText.class.isAssignableFrom(types[0])) {
+                if (!types[0].isAssignableFrom(FormattedCharSequence.class) && !FormattedCharSequence.class.isAssignableFrom(types[0])) {
                     continue;
                 }
                 if (types[1] != int.class && types[1] != Integer.class) {
@@ -1287,15 +1286,15 @@ public class ChatWindow {
         return ((int) (firstY / scale)) * scale;
     }
 
-    public static int scaledLineHeight(TextRenderer tr, float scale) {
-        return Math.max(1, (int) Math.ceil(tr.fontHeight * scale));
+    public static int scaledLineHeight(Font tr, float scale) {
+        return Math.max(1, (int) Math.ceil(tr.lineHeight * scale));
     }
 
     private static float clamp(float scale) {
         return Math.max(0.5f, Math.min(3.0f, scale));
     }
 
-    private String extractSender(Text text) {
+    private String extractSender(Component text) {
         if (text == null) {
             return null;
         }
@@ -1321,7 +1320,7 @@ public class ChatWindow {
         return parts.length == 0 ? pre : parts[parts.length - 1];
     }
 
-    private boolean isSameMessage(Text a, Text b) {
+    private boolean isSameMessage(Component a, Component b) {
         if (a == null || b == null) {
             return false;
         }
@@ -1337,21 +1336,21 @@ public class ChatWindow {
         public final List<RowRef> cachedRows = new ArrayList<>();
         public int cachedWrapWidth = -1;
         public boolean dirty = true;
-        public Text original;
+        public Component original;
         public int repeatCount;
         public long createdAtMs;
         public String serializedJson;
 
-        public Entry(Text original, int repeatCount) {
+        public Entry(Component original, int repeatCount) {
             this(original, repeatCount, System.currentTimeMillis(), null);
         }
 
-        public Entry(Text original, int repeatCount, long createdAtMs) {
+        public Entry(Component original, int repeatCount, long createdAtMs) {
             this(original, repeatCount, createdAtMs, null);
         }
 
-        public Entry(Text original, int repeatCount, long createdAtMs, String serializedJson) {
-            this.original = original == null ? Text.empty() : original;
+        public Entry(Component original, int repeatCount, long createdAtMs, String serializedJson) {
+            this.original = original == null ? Component.empty() : original;
             this.repeatCount = Math.max(1, repeatCount);
             this.createdAtMs = createdAtMs;
             this.serializedJson = serializedJson == null || serializedJson.isBlank()
@@ -1361,17 +1360,17 @@ public class ChatWindow {
     }
 
     public static final class RowRef {
-        public final Text source;
-        public final OrderedText ordered;
+        public final Component source;
+        public final FormattedCharSequence ordered;
         public final List<GlyphRun> glyphRuns;
         public final long createdAtMs;
 
-        public RowRef(Text source, OrderedText ordered, List<GlyphRun> glyphRuns) {
+        public RowRef(Component source, FormattedCharSequence ordered, List<GlyphRun> glyphRuns) {
             this(source, ordered, glyphRuns, System.currentTimeMillis());
         }
 
-        public RowRef(Text source, OrderedText ordered, List<GlyphRun> glyphRuns, long createdAtMs) {
-            this.source = source == null ? Text.empty() : source;
+        public RowRef(Component source, FormattedCharSequence ordered, List<GlyphRun> glyphRuns, long createdAtMs) {
+            this.source = source == null ? Component.empty() : source;
             this.ordered = ordered;
             this.glyphRuns = glyphRuns == null ? List.of() : glyphRuns;
             this.createdAtMs = createdAtMs;

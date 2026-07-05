@@ -1,19 +1,20 @@
 package com.client.multichatwindows.hud;
 
 import com.client.multichatwindows.config.ConfigManager;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.ChatScreen;
-import net.minecraft.client.render.RenderTickCounter;
-import net.minecraft.text.OrderedText;
-import net.minecraft.text.Style;
-import net.minecraft.text.TextColor;
-
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
+import net.minecraft.client.DeltaTracker;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.TextColor;
+import net.minecraft.util.FormattedCharSequence;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import net.minecraft.resources.Identifier;
 
 public final class HudOverlay {
     private static final long FADE_START_MS = 7000L;
@@ -23,16 +24,16 @@ public final class HudOverlay {
     }
 
     public static void init() {
-        HudRenderCallback.EVENT.register(HudOverlay::render);
+        HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT, Identifier.fromNamespaceAndPath("multichatwindows", "hud_overlay"), HudOverlay::extractRenderState);
     }
 
-    private static void render(DrawContext ctx, RenderTickCounter tickCounter) {
-        MinecraftClient mc = MinecraftClient.getInstance();
+    private static void extractRenderState(GuiGraphicsExtractor ctx, DeltaTracker tickCounter) {
+        Minecraft mc = Minecraft.getInstance();
 
-        if (mc.player == null || mc.options.hudHidden) return;
+        if (mc.player == null || mc.options.hideGui) return;
         if (!ConfigManager.global().enabled) return;
 
-        TextRenderer tr = mc.textRenderer;
+        Font tr = mc.font;
 
         for (ChatWindow w : WindowService.allWindows()) {
             if (w.enabled) {
@@ -41,7 +42,7 @@ public final class HudOverlay {
         }
     }
 
-    private static void drawWindow(DrawContext ctx, TextRenderer tr, MinecraftClient mc, ChatWindow w) {
+    private static void drawWindow(GuiGraphicsExtractor ctx, Font tr, Minecraft mc, ChatWindow w) {
         List<ChatWindow.RowRef> rows = w.visibleRows();
         if (rows.isEmpty() && !isExpanded(mc)) {
             return;
@@ -57,7 +58,7 @@ public final class HudOverlay {
         }
 
         float opacity = w.useVanilla
-                ? mc.options.getChatOpacity().getValue().floatValue()
+                ? mc.options.chatOpacity().get().floatValue()
                 : w.opacity;
 
         int alpha = Math.max(0, Math.min(255, (int) (opacity * 255)));
@@ -101,8 +102,8 @@ public final class HudOverlay {
                 continue;
             }
 
-            ctx.getMatrices().pushMatrix();
-            ctx.getMatrices().scale(scale, scale);
+            ctx.pose().pushMatrix();
+            ctx.pose().scale(scale, scale);
 
             drawOrderedTextWithStyleColors(
                     ctx,
@@ -113,13 +114,13 @@ public final class HudOverlay {
                     lineAlpha
             );
 
-            ctx.getMatrices().popMatrix();
+            ctx.pose().popMatrix();
 
             yy -= lineHeight;
         }
     }
 
-    private static void drawOrderedTextWithStyleColors(DrawContext ctx, TextRenderer tr, OrderedText ordered, int x, int y, int alpha) {
+    private static void drawOrderedTextWithStyleColors(GuiGraphicsExtractor ctx, Font tr, FormattedCharSequence ordered, int x, int y, int alpha) {
         if (ordered == null || alpha <= 0) {
             return;
         }
@@ -133,14 +134,14 @@ public final class HudOverlay {
                 continue;
             }
 
-            OrderedText runText = OrderedText.styledForwardsVisitedString(run.text, run.style);
+            FormattedCharSequence runText = FormattedCharSequence.forward(run.text, run.style);
             int rgb = styleRgb(run.style);
-            ctx.drawTextWithShadow(tr, runText, cursorX, y, (safeAlpha << 24) | rgb);
-            cursorX += tr.getWidth(runText);
+            com.client.multichatwindows.util.GuiDrawHelper.text(ctx, tr, runText, cursorX, y, (safeAlpha << 24) | rgb);
+            cursorX += tr.width(runText);
         }
     }
 
-    private static List<StyledTextRun> splitStyledRuns(OrderedText ordered) {
+    private static List<StyledTextRun> splitStyledRuns(FormattedCharSequence ordered) {
         List<StyledTextRun> runs = new ArrayList<>();
         StringBuilder current = new StringBuilder();
         Style[] currentStyle = new Style[]{null};
@@ -174,11 +175,11 @@ public final class HudOverlay {
             return 0x00FFFFFF;
         }
 
-        return color.getRgb() & 0x00FFFFFF;
+        return color.getValue() & 0x00FFFFFF;
     }
 
-    private static boolean isExpanded(MinecraftClient mc) {
-        return mc.currentScreen instanceof ChatScreen;
+    private static boolean isExpanded(Minecraft mc) {
+        return mc.screen instanceof ChatScreen;
     }
 
     private static int strongestLineAlpha(List<ChatWindow.RowRef> rows, long now, boolean expanded, boolean scrolled) {
