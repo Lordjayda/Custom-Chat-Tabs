@@ -125,20 +125,10 @@ public final class HudOverlay {
             return;
         }
 
-        List<StyledTextRun> runs = splitStyledRuns(ordered);
-        int cursorX = x;
         int safeAlpha = Math.max(0, Math.min(255, alpha));
-
-        for (StyledTextRun run : runs) {
-            if (run.text.isEmpty()) {
-                continue;
-            }
-
-            FormattedCharSequence runText = FormattedCharSequence.forward(run.text, run.style);
-            int rgb = styleRgb(run.style);
-            com.client.multichatwindows.util.GuiDrawHelper.text(ctx, tr, runText, cursorX, y, (safeAlpha << 24) | rgb);
-            cursorX += tr.width(runText);
-        }
+        // Fast path: render the already wrapped/ordered row directly.
+        // Avoid splitting each visible row into new String/List runs every frame.
+        com.client.multichatwindows.util.GuiDrawHelper.text(ctx, tr, ordered, x, y, (safeAlpha << 24) | 0x00FFFFFF);
     }
 
     private static List<StyledTextRun> splitStyledRuns(FormattedCharSequence ordered) {

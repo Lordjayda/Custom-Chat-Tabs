@@ -36,7 +36,6 @@ public class ChatHudFeedbackMixin {
     )
     private void mcw$hideVanillaChatWhenEnabled(GuiGraphicsExtractor context, Font font, int tickCount, int mouseX, int mouseY, DisplayMode displayMode, boolean focused, CallbackInfo ci) {
         if (WindowService.isGloballyEnabled()) {
-            WindowService.clearVanillaChatMessages();
             ci.cancel();
         }
     }
