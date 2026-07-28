@@ -3,11 +3,11 @@ package com.client.multichatwindows.config.ui;
 import com.client.multichatwindows.config.ConfigManager;
 import com.client.multichatwindows.config.model.ServerConfig;
 import com.client.multichatwindows.config.model.TabConfig;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 
 public class StyleMenuScreen extends ScrollableDarkScreen {
     private final Screen parent;
@@ -15,15 +15,15 @@ public class StyleMenuScreen extends ScrollableDarkScreen {
     private final int tabIndex;
     private ServerConfig sc;
     private TabConfig tab;
-    private TextFieldWidget xField;
-    private TextFieldWidget yField;
-    private TextFieldWidget wField;
-    private TextFieldWidget hField;
-    private TextFieldWidget opField;
-    private TextFieldWidget textScaleField;
+    private EditBox xField;
+    private EditBox yField;
+    private EditBox wField;
+    private EditBox hField;
+    private EditBox opField;
+    private EditBox textScaleField;
 
     public StyleMenuScreen(Screen parent, String serverKey, int tabIndex) {
-        super(Text.translatable("multichatwindows.style.menu"));
+        super(Component.translatable("multichatwindows.style.menu"));
         this.parent = parent;
         this.serverKey = serverKey;
         this.tabIndex = tabIndex;
@@ -31,7 +31,7 @@ public class StyleMenuScreen extends ScrollableDarkScreen {
 
     @Override
     protected void init() {
-        clearChildren();
+        clearWidgets();
         sc = ConfigManager.getOrCreateServer(serverKey);
         tab = (tabIndex >= 0 && tabIndex < sc.tabs.size()) ? sc.tabs.get(tabIndex) : null;
 
@@ -39,23 +39,23 @@ public class StyleMenuScreen extends ScrollableDarkScreen {
         int y = 42;
 
         if (tab == null) {
-            addDrawableChild(new DarkButton(
+            addRenderableWidget(new DarkButton(
                     cx - 100,
                     height - 28,
                     200,
                     20,
-                    Text.translatable("multichatwindows.back"),
-                    () -> MinecraftClient.getInstance().setScreen(parent)
+                    Component.translatable("multichatwindows.back"),
+                    () -> com.client.multichatwindows.util.MinecraftGuiAccess.setScreen(parent)
             ));
             return;
         }
 
-        addDrawableChild(new DarkButton(
+        addRenderableWidget(new DarkButton(
                 cx - 104,
                 y,
                 208,
                 20,
-                Text.translatable(tab.useVanilla
+                Component.translatable(tab.useVanilla
                         ? "multichatwindows.vanilla.on"
                         : "multichatwindows.vanilla.off"),
                 () -> {
@@ -85,21 +85,21 @@ public class StyleMenuScreen extends ScrollableDarkScreen {
         textScaleField = field(right, y, 100, "multichatwindows.style.text_scale", Math.round(clampTextScale(tab.textScale) * 100.0f) + "%");
         y += 28;
 
-        addDrawableChild(new DarkButton(
+        addRenderableWidget(new DarkButton(
                 left,
                 y,
                 100,
                 20,
-                Text.translatable("multichatwindows.outline.open"),
-                () -> MinecraftClient.getInstance().setScreen(new OutlineMenuScreen(this, serverKey, tabIndex))
+                Component.translatable("multichatwindows.outline.open"),
+                () -> com.client.multichatwindows.util.MinecraftGuiAccess.setScreen(new OutlineMenuScreen(this, serverKey, tabIndex))
         ));
-        addDrawableChild(new DarkButton(
+        addRenderableWidget(new DarkButton(
                 right,
                 y,
                 100,
                 20,
-                Text.translatable("multichatwindows.style.edit_pos_size"),
-                () -> MinecraftClient.getInstance().setScreen(new RealTimeEditorScreen(this, serverKey, tabIndex))
+                Component.translatable("multichatwindows.style.edit_pos_size"),
+                () -> com.client.multichatwindows.util.MinecraftGuiAccess.setScreen(new RealTimeEditorScreen(this, serverKey, tabIndex))
         ));
         y += 28;
 
@@ -112,46 +112,46 @@ public class StyleMenuScreen extends ScrollableDarkScreen {
         textScaleField.setEditable(editable);
 
         
-        addDrawableChild(new DarkButton(
+        addRenderableWidget(new DarkButton(
                 cx - 104,
                 height - 28,
                 208,
                 20,
-                Text.translatable("multichatwindows.back"),
-                () -> MinecraftClient.getInstance().setScreen(parent)
+                Component.translatable("multichatwindows.back"),
+                () -> com.client.multichatwindows.util.MinecraftGuiAccess.setScreen(parent)
         ));
     }
 
-    private TextFieldWidget field(int x, int y, int w, String key, int value) {
+    private EditBox field(int x, int y, int w, String key, int value) {
         return field(x, y, w, key, String.valueOf(value));
     }
 
-    private TextFieldWidget field(int x, int y, int w, String key, float value) {
+    private EditBox field(int x, int y, int w, String key, float value) {
         return field(x, y, w, key, String.valueOf(value));
     }
 
-    private TextFieldWidget field(int x, int y, int w, String key, String value) {
-        TextFieldWidget tf = new TextFieldWidget(
-                textRenderer,
+    private EditBox field(int x, int y, int w, String key, String value) {
+        EditBox tf = new EditBox(
+                font,
                 x,
                 y,
                 w,
                 20,
-                Text.translatable(key)
+                Component.translatable(key)
         );
-        tf.setText(value == null ? "" : value);
-        addDrawableChild(tf);
+        tf.setValue(value == null ? "" : value);
+        addRenderableWidget(tf);
         return tf;
     }
 
     private void apply() {
         if (tab == null || tab.useVanilla) return;
-        tab.x = parseInt(xField.getText(), tab.x);
-        tab.y = parseInt(yField.getText(), tab.y);
-        tab.width = Math.max(60, parseInt(wField.getText(), tab.width));
-        tab.height = Math.max(40, parseInt(hField.getText(), tab.height));
-        tab.opacity = Math.max(0.0f, Math.min(1.0f, parseFloat(opField.getText(), tab.opacity)));
-        tab.textScale = parseTextScale(textScaleField.getText(), tab.textScale);
+        tab.x = parseInt(xField.getValue(), tab.x);
+        tab.y = parseInt(yField.getValue(), tab.y);
+        tab.width = Math.max(60, parseInt(wField.getValue(), tab.width));
+        tab.height = Math.max(40, parseInt(hField.getValue(), tab.height));
+        tab.opacity = Math.max(0.0f, Math.min(1.0f, parseFloat(opField.getValue(), tab.opacity)));
+        tab.textScale = parseTextScale(textScaleField.getValue(), tab.textScale);
     }
 
     private static int parseInt(String s, int fallback) {
@@ -203,20 +203,20 @@ public class StyleMenuScreen extends ScrollableDarkScreen {
     }
 
     @Override
-    public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
-        super.render(ctx, mouseX, mouseY, delta);
-        ctx.drawCenteredTextWithShadow(
-                textRenderer,
-                Text.translatable("multichatwindows.style.menu"),
+    public void extractRenderState(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
+        super.extractRenderState(ctx, mouseX, mouseY, delta);
+        com.client.multichatwindows.util.GuiDrawHelper.centered(ctx, 
+                font,
+                Component.translatable("multichatwindows.style.menu"),
                 width / 2,
                 14,
                 0xFFFFFFFF
         );
 
         if (tab != null && tab.useVanilla) {
-            ctx.drawTextWithShadow(
-                    textRenderer,
-                    Text.translatable("multichatwindows.vanilla.info"),
+            com.client.multichatwindows.util.GuiDrawHelper.text(ctx, 
+                    font,
+                    Component.translatable("multichatwindows.vanilla.info"),
                     20,
                     70,
                     0xFFB0B0B0

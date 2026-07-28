@@ -64,7 +64,7 @@
   "multichatwindows.filter_all.off": "Filter All Chat: OFF",
   "multichatwindows.edit_position_size": "Realtime Editor",
   "multichatwindows.pos_size": "x=%d y=%d w=%d h=%d",
-  "multichatwindows.drag_hint": "Drag = move | Resize",
+  "multichatwindows.drag_hint": "Drag = move | Down right Corner=Resize",
   "multichatwindows.all_tab": "All Tab",
   "multichatwindows.all_tab.locked": "This tab is locked.",
   "multichatwindows.all_tab.nodeps": "No dependencies possible.",

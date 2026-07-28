@@ -4,11 +4,11 @@ import com.client.multichatwindows.config.ConfigManager;
 import com.client.multichatwindows.config.model.ServerConfig;
 import com.client.multichatwindows.config.model.TabConfig;
 import com.client.multichatwindows.hud.WindowService;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 
 public class OutlineMenuScreen extends ScrollableDarkScreen {
 
@@ -19,10 +19,10 @@ public class OutlineMenuScreen extends ScrollableDarkScreen {
     private ServerConfig sc;
     private TabConfig tab;
 
-    private TextFieldWidget colorField;
+    private EditBox colorField;
 
     public OutlineMenuScreen(Screen parent, String serverKey, int tabIndex) {
-        super(Text.translatable("multichatwindows.outline.title"));
+        super(Component.translatable("multichatwindows.outline.title"));
         this.parent = parent;
         this.serverKey = serverKey;
         this.tabIndex = tabIndex;
@@ -30,7 +30,7 @@ public class OutlineMenuScreen extends ScrollableDarkScreen {
 
     @Override
     protected void init() {
-        clearChildren();
+        clearWidgets();
 
         sc = ConfigManager.getOrCreateServer(serverKey);
         tab = (tabIndex >= 0 && tabIndex < sc.tabs.size()) ? sc.tabs.get(tabIndex) : null;
@@ -39,23 +39,23 @@ public class OutlineMenuScreen extends ScrollableDarkScreen {
         int y = 46;
 
         if (tab == null) {
-            addDrawableChild(new DarkButton(
+            addRenderableWidget(new DarkButton(
                     cx - 100,
                     height - 28,
                     200,
                     20,
-                    Text.translatable("multichatwindows.back"),
-                    () -> MinecraftClient.getInstance().setScreen(parent)
+                    Component.translatable("multichatwindows.back"),
+                    () -> com.client.multichatwindows.util.MinecraftGuiAccess.setScreen(parent)
             ));
             return;
         }
 
-        addDrawableChild(new DarkButton(
+        addRenderableWidget(new DarkButton(
                 cx - 100,
                 y,
                 200,
                 20,
-                Text.translatable(tab.outlineEnabled
+                Component.translatable(tab.outlineEnabled
                         ? "multichatwindows.outline.enabled.on"
                         : "multichatwindows.outline.enabled.off"),
                 () -> {
@@ -67,7 +67,7 @@ public class OutlineMenuScreen extends ScrollableDarkScreen {
 
         y += 30;
 
-        addDrawableChild(new PixelSlider(
+        addRenderableWidget(new PixelSlider(
                 cx - 100,
                 y,
                 160,
@@ -83,33 +83,33 @@ public class OutlineMenuScreen extends ScrollableDarkScreen {
 
         y += 28;
 
-        colorField = new TextFieldWidget(
-                textRenderer,
+        colorField = new EditBox(
+                font,
                 cx - 100,
                 y,
                 200,
                 20,
-                Text.translatable("multichatwindows.outline.color")
+                Component.translatable("multichatwindows.outline.color")
         );
 
-        colorField.setText(tab.outlineColor == null ? "FFFFFF" : tab.outlineColor);
+        colorField.setValue(tab.outlineColor == null ? "FFFFFF" : tab.outlineColor);
 
-        colorField.setChangedListener(s -> {
+        colorField.setResponder(s -> {
             tab.outlineColor = sanitizeHex(s);
             save();
         });
 
-        addDrawableChild(colorField);
+        addRenderableWidget(colorField);
 
         
 
-        addDrawableChild(new DarkButton(
+        addRenderableWidget(new DarkButton(
                 cx - 100,
                 height - 28,
                 200,
                 20,
-                Text.translatable("multichatwindows.back"),
-                () -> MinecraftClient.getInstance().setScreen(parent)
+                Component.translatable("multichatwindows.back"),
+                () -> com.client.multichatwindows.util.MinecraftGuiAccess.setScreen(parent)
         ));
     }
 
@@ -160,12 +160,12 @@ public class OutlineMenuScreen extends ScrollableDarkScreen {
     }
 
     @Override
-    public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
-        super.render(ctx, mouseX, mouseY, delta);
+    public void extractRenderState(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
+        super.extractRenderState(ctx, mouseX, mouseY, delta);
 
-        ctx.drawCenteredTextWithShadow(
-                textRenderer,
-                Text.translatable("multichatwindows.outline.title"),
+        com.client.multichatwindows.util.GuiDrawHelper.centered(ctx, 
+                font,
+                Component.translatable("multichatwindows.outline.title"),
                 width / 2,
                 14,
                 0xFFFFFFFF
@@ -175,17 +175,17 @@ public class OutlineMenuScreen extends ScrollableDarkScreen {
 
         int cx = width / 2;
 
-        ctx.drawTextWithShadow(
-                textRenderer,
-                Text.translatable("multichatwindows.outline.width", tab.outlineWidth),
+        com.client.multichatwindows.util.GuiDrawHelper.text(ctx, 
+                font,
+                Component.translatable("multichatwindows.outline.width", tab.outlineWidth),
                 cx - 100,
                 76,
                 0xFFFFFFFF
         );
 
-        ctx.drawCenteredTextWithShadow(
-                textRenderer,
-                Text.translatable("multichatwindows.outline.preview"),
+        com.client.multichatwindows.util.GuiDrawHelper.centered(ctx, 
+                font,
+                Component.translatable("multichatwindows.outline.preview"),
                 cx,
                 110,
                 0xFFFFFFFF

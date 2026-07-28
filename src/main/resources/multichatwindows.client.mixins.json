@@ -2,13 +2,14 @@
   "required": true,
   "minVersion": "0.8",
   "package": "com.client.multichatwindows.mixin",
-  "compatibilityLevel": "JAVA_17",
+  "compatibilityLevel": "JAVA_25",
   "refmap": "multichatwindows.refmap.json",
   "client": [
     "client.MessageHandlerMixin",
     "client.ScreenScrollMixin",
     "client.MinecraftClientMixin",
     "client.ChatScreenMixin",
+    "client.GuiGraphicsExtractorAccessor",
     "client.InGameHudNotificationMixin",
     "client.ChatHudFeedbackMixin",
     "client.ChatHudLimitMixin"

@@ -6,14 +6,13 @@ import com.client.multichatwindows.config.model.ServerConfig;
 import com.client.multichatwindows.config.model.TabConfig;
 import com.client.multichatwindows.hud.WindowService;
 import com.client.multichatwindows.util.I18nUtil;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.text.Text;
-
 import java.util.HashSet;
 import java.util.Set;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.network.chat.Component;
 
 public class ScreensMenuScreen extends ScrollableDarkScreen {
     private final Screen parent;
@@ -39,14 +38,14 @@ public class ScreensMenuScreen extends ScrollableDarkScreen {
     private int lastMouseY = 0;
 
     public ScreensMenuScreen(Screen parent, String serverKey) {
-        super(Text.translatable("multichatwindows.screens.title"));
+        super(Component.translatable("multichatwindows.screens.title"));
         this.parent = parent;
         this.serverKey = serverKey;
     }
 
     @Override
     protected void init() {
-        clearChildren();
+        clearWidgets();
         sc = ConfigManager.getOrCreateServer(serverKey);
 
         int cx = width / 2;
@@ -70,33 +69,33 @@ public class ScreensMenuScreen extends ScrollableDarkScreen {
                 boolean isAll = "all".equalsIgnoreCase(t.id);
 
                 if (y + 20 >= TOP_Y && y <= bottom) {
-                    addDrawableChild(new DarkButton(
+                    addRenderableWidget(new DarkButton(
                             cx - 120,
                             y,
                             EDIT_BTN_W,
                             20,
-                            Text.translatable("multichatwindows.tab.button", I18nUtil.tKeyOrLiteral(t.name)),
-                            () -> MinecraftClient.getInstance().setScreen(new TabEditScreen(this, serverKey, idx))
+                            Component.translatable("multichatwindows.tab.button", I18nUtil.tKeyOrLiteral(t.name)),
+                            () -> com.client.multichatwindows.util.MinecraftGuiAccess.setScreen(new TabEditScreen(this, serverKey, idx))
                     ));
 
-                    addDrawableChild(new DarkButton(
+                    addRenderableWidget(new DarkButton(
                             cx + 24,
                             y,
                             SMALL_BTN_W,
                             20,
-                            Text.literal("⧉"),
+                            Component.literal("⧉"),
                             () -> {
                                 if (isAll) return;
                                 duplicateTab(idx);
                             }
                     ));
 
-                    addDrawableChild(new DarkButton(
+                    addRenderableWidget(new DarkButton(
                             cx + 64,
                             y,
                             SMALL_BTN_W,
                             20,
-                            Text.translatable(isAll ? "multichatwindows.locked" : "multichatwindows.delete"),
+                            Component.translatable(isAll ? "multichatwindows.locked" : "multichatwindows.delete"),
                             () -> {
                                 if (isAll) return;
                                 sc.tabs.removeIf(tab -> tab != null && tabId.equals(tab.id));
@@ -112,12 +111,12 @@ public class ScreensMenuScreen extends ScrollableDarkScreen {
             }
         }
 
-        addDrawableChild(new DarkButton(
+        addRenderableWidget(new DarkButton(
                 cx - 100,
                 height - 80,
                 BTN_W,
                 20,
-                Text.translatable("multichatwindows.screens.add"),
+                Component.translatable("multichatwindows.screens.add"),
                 () -> {
                     TabConfig t = new TabConfig();
                     t.id = "tab" + System.currentTimeMillis();
@@ -139,13 +138,13 @@ public class ScreensMenuScreen extends ScrollableDarkScreen {
 
         
 
-        addDrawableChild(new DarkButton(
+        addRenderableWidget(new DarkButton(
                 cx - 100,
                 height - 28,
                 BTN_W,
                 20,
-                Text.translatable("multichatwindows.back"),
-                () -> MinecraftClient.getInstance().setScreen(parent)
+                Component.translatable("multichatwindows.back"),
+                () -> com.client.multichatwindows.util.MinecraftGuiAccess.setScreen(parent)
         ));
     }
 
@@ -316,7 +315,7 @@ public class ScreensMenuScreen extends ScrollableDarkScreen {
     }
 
     @Override
-    public boolean mouseClicked(Click click, boolean doubled) {
+    public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
         double mouseX = click.x();
         double mouseY = click.y();
         int button = click.button();
@@ -334,7 +333,7 @@ public class ScreensMenuScreen extends ScrollableDarkScreen {
     }
 
     @Override
-    public boolean mouseDragged(Click click, double offsetX, double offsetY) {
+    public boolean mouseDragged(MouseButtonEvent click, double offsetX, double offsetY) {
         double mouseX = click.x();
         double mouseY = click.y();
         int button = click.button();
@@ -351,7 +350,7 @@ public class ScreensMenuScreen extends ScrollableDarkScreen {
     }
 
     @Override
-    public boolean mouseReleased(Click click) {
+    public boolean mouseReleased(MouseButtonEvent click) {
         draggingScrollbar = false;
         return super.mouseReleased(click);
     }
@@ -447,23 +446,23 @@ public class ScreensMenuScreen extends ScrollableDarkScreen {
     }
 
     @Override
-    public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
+    public void extractRenderState(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
         this.lastMouseX = mouseX;
         this.lastMouseY = mouseY;
 
-        super.render(ctx, mouseX, mouseY, delta);
+        super.extractRenderState(ctx, mouseX, mouseY, delta);
 
-        ctx.drawCenteredTextWithShadow(
-                textRenderer,
-                Text.translatable("multichatwindows.screens.title"),
+        com.client.multichatwindows.util.GuiDrawHelper.centered(ctx, 
+                font,
+                Component.translatable("multichatwindows.screens.title"),
                 width / 2,
                 14,
                 0xFFFFFFFF
         );
 
-        ctx.drawCenteredTextWithShadow(
-                textRenderer,
-                Text.translatable("multichatwindows.server.current", Text.literal(serverKey)),
+        com.client.multichatwindows.util.GuiDrawHelper.centered(ctx, 
+                font,
+                Component.translatable("multichatwindows.server.current", Component.literal(serverKey)),
                 width / 2,
                 28,
                 0xFFB0B0B0
@@ -472,7 +471,7 @@ public class ScreensMenuScreen extends ScrollableDarkScreen {
         renderScrollbar(ctx);
     }
 
-    private void renderScrollbar(DrawContext ctx) {
+    private void renderScrollbar(GuiGraphicsExtractor ctx) {
         int[] handle = scrollbarHandle();
         if (handle == null) return;
 

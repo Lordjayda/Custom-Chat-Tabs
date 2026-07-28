@@ -2,11 +2,11 @@ package com.client.multichatwindows.config.ui;
 
 import com.client.multichatwindows.hud.WindowService;
 import java.lang.reflect.Field;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 
 final class ServerHistoryTrimButton {
     private static final int KEEP_MESSAGES = 100;
@@ -17,7 +17,7 @@ final class ServerHistoryTrimButton {
     private ServerHistoryTrimButton() {
     }
 
-    static void render(Screen screen, DrawContext ctx, int width, int height, int mouseX, int mouseY) {
+    static void render(Screen screen, GuiGraphicsExtractor ctx, int width, int height, int mouseX, int mouseY) {
         String serverKey = findServerKey(screen);
         if (serverKey == null || serverKey.isBlank()) {
             return;
@@ -34,8 +34,9 @@ final class ServerHistoryTrimButton {
         ctx.fill(X, y, X + 1, y + H, border);
         ctx.fill(X + W - 1, y, X + W, y + H, border);
 
-        TextRenderer font = MinecraftClient.getInstance().textRenderer;
-        ctx.drawTextWithShadow(font, Text.literal("Trim tabs to 100 msgs"), X + 6, y + 6, 0xFFFFFFFF);
+        Font font = Minecraft.getInstance().font;
+        Component text = Component.literal("Trim tabs to 100 msgs");
+        com.client.multichatwindows.util.GuiDrawHelper.text(ctx, font, text, X + 6, y + 6, 0xFFFFFFFF);
     }
 
     static boolean mouseClicked(Screen screen, int width, int height, double mouseX, double mouseY, int button) {

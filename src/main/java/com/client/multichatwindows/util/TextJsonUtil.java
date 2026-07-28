@@ -5,15 +5,6 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.text.ClickEvent;
-import net.minecraft.text.HoverEvent;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Style;
-import net.minecraft.text.Text;
-import net.minecraft.text.TextColor;
-import net.minecraft.util.Formatting;
-
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -22,6 +13,14 @@ import java.net.URI;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.TextColor;
 
 public final class TextJsonUtil {
     private static final Gson GSON = new Gson();
@@ -29,7 +28,7 @@ public final class TextJsonUtil {
     private TextJsonUtil() {
     }
 
-    public static String toJson(Text text) {
+    public static String toJson(Component text) {
         if (text == null) {
             return "{\"text\":\"\"}";
         }
@@ -50,24 +49,24 @@ public final class TextJsonUtil {
         return GSON.toJson(toJsonObject(text));
     }
 
-    public static Text fromJson(String json) {
+    public static Component fromJson(String json) {
         if (json == null || json.isBlank()) {
-            return Text.empty();
+            return Component.empty();
         }
 
         JsonElement parsed;
         try {
             parsed = JsonParser.parseString(json);
         } catch (Exception ignored) {
-            return Text.literal(json);
+            return Component.literal(json);
         }
 
-        Text nativeText = tryNativeSerializationFromJson(json);
+        Component nativeText = tryNativeSerializationFromJson(json);
         if (nativeText != null) {
             return nativeText;
         }
 
-        Text codecText = tryCodecFromJson(GSON.toJson(withMinecraftAliases(parsed)));
+        Component codecText = tryCodecFromJson(GSON.toJson(withMinecraftAliases(parsed)));
         if (codecText != null) {
             return codecText;
         }
@@ -76,19 +75,19 @@ public final class TextJsonUtil {
         try {
             return fromJsonElement(parsed);
         } catch (Exception ignored) {
-            return Text.literal(json);
+            return Component.literal(json);
         }
     }
 
-    private static JsonObject toJsonObject(Text text) {
+    private static JsonObject toJsonObject(Component text) {
         JsonObject object = new JsonObject();
         object.addProperty("text", ownText(text));
         addStyle(object, text == null ? Style.EMPTY : text.getStyle());
 
-        List<Text> siblings = text == null ? List.of() : text.getSiblings();
+        List<Component> siblings = text == null ? List.of() : text.getSiblings();
         if (siblings != null && !siblings.isEmpty()) {
             JsonArray extra = new JsonArray();
-            for (Text sibling : siblings) {
+            for (Component sibling : siblings) {
                 extra.add(toJsonObject(sibling));
             }
             object.add("extra", extra);
@@ -96,15 +95,15 @@ public final class TextJsonUtil {
         return object;
     }
 
-    private static Text fromJsonElement(JsonElement element) {
+    private static Component fromJsonElement(JsonElement element) {
         if (element == null || element.isJsonNull()) {
-            return Text.empty();
+            return Component.empty();
         }
         if (element.isJsonPrimitive()) {
-            return Text.literal(element.getAsString());
+            return Component.literal(element.getAsString());
         }
         if (element.isJsonArray()) {
-            MutableText combined = Text.empty();
+            MutableComponent combined = Component.empty();
             for (JsonElement child : element.getAsJsonArray()) {
                 combined.append(fromJsonElement(child));
             }
@@ -112,7 +111,7 @@ public final class TextJsonUtil {
         }
 
         JsonObject object = element.getAsJsonObject();
-        MutableText result = Text.literal(getString(object, "text", ""));
+        MutableComponent result = Component.literal(getString(object, "text", ""));
         result.setStyle(styleFromJson(object));
 
         JsonElement extra = object.get("extra");
@@ -124,13 +123,13 @@ public final class TextJsonUtil {
         return result;
     }
 
-    private static String ownText(Text text) {
+    private static String ownText(Component text) {
         if (text == null) {
             return "";
         }
         String full = text.getString();
         StringBuilder childText = new StringBuilder();
-        for (Text sibling : text.getSiblings()) {
+        for (Component sibling : text.getSiblings()) {
             childText.append(sibling.getString());
         }
         String suffix = childText.toString();
@@ -147,8 +146,8 @@ public final class TextJsonUtil {
 
         TextColor color = style.getColor();
         if (color != null) {
-            String name = color.getName();
-            object.addProperty("color", name == null || name.isBlank() ? String.format("#%06X", color.getRgb() & 0xFFFFFF) : name);
+            String name = color.serialize();
+            object.addProperty("color", name == null || name.isBlank() ? String.format("#%06X", color.getValue() & 0xFFFFFF) : name);
         }
         object.addProperty("bold", style.isBold());
         object.addProperty("italic", style.isItalic());
@@ -162,11 +161,11 @@ public final class TextJsonUtil {
         ClickEvent click = style.getClickEvent();
         if (click != null) {
             JsonObject clickObject = new JsonObject();
-            clickObject.addProperty("action", actionName(click.getAction()));
+            clickObject.addProperty("action", actionName(click.action()));
             String value = clickValue(click);
             if (value != null) {
                 clickObject.addProperty("value", value);
-                if (click.getAction() == ClickEvent.Action.SUGGEST_COMMAND || click.getAction() == ClickEvent.Action.RUN_COMMAND) {
+                if (click.action() == ClickEvent.Action.SUGGEST_COMMAND || click.action() == ClickEvent.Action.RUN_COMMAND) {
                     clickObject.addProperty("command", value);
                 }
             }
@@ -198,7 +197,7 @@ public final class TextJsonUtil {
             style = style.withItalic(true);
         }
         if (getBoolean(object, "underlined")) {
-            style = style.withUnderline(true);
+            style = style.withUnderlined(true);
         }
         if (getBoolean(object, "strikethrough")) {
             style = style.withStrikethrough(true);
@@ -234,8 +233,8 @@ public final class TextJsonUtil {
         } catch (Exception ignored) {
         }
         try {
-            Formatting formatting = Formatting.byName(color);
-            return formatting == null ? null : TextColor.fromFormatting(formatting);
+            ChatFormatting formatting = ChatFormatting.valueOf(color.toUpperCase(java.util.Locale.ROOT));
+            return formatting == null ? null : TextColor.fromLegacyFormat(formatting);
         } catch (Exception ignored) {
             return null;
         }
@@ -355,7 +354,7 @@ public final class TextJsonUtil {
             return null;
         }
         if (action.isBlank() || action.equals("show_text") || action.equals("showtext")) {
-            return constructHoverEvent("net.minecraft.text.HoverEvent$ShowText", fromJsonElement(value));
+            return constructHoverEvent("net.minecraft.network.chat.HoverEvent$ShowText", fromJsonElement(value));
         }
         return null;
     }
@@ -434,9 +433,9 @@ public final class TextJsonUtil {
 
     private static JsonObject hoverToJson(HoverEvent hover) {
         JsonObject object = new JsonObject();
-        Object action = invokeZeroArg(hover, "getAction");
+        Object action = invokeZeroArg(hover, "action", "getAction");
         Object value = hoverValue(hover, action);
-        if (value instanceof Text text) {
+        if (value instanceof Component text) {
             object.addProperty("action", "show_text");
             object.add("value", toJsonObject(text));
             object.add("contents", toJsonObject(text));
@@ -451,18 +450,20 @@ public final class TextJsonUtil {
     }
 
     private static Object hoverValue(HoverEvent hover, Object action) {
-        for (Method method : hover.getClass().getMethods()) {
-            if (!method.getName().equals("getValue")) {
-                continue;
-            }
-            try {
-                if (method.getParameterCount() == 0) {
-                    return method.invoke(hover);
+        for (String accessor : new String[]{"value", "item", "entity", "getValue"}) {
+            for (Method method : hover.getClass().getMethods()) {
+                if (!method.getName().equals(accessor)) {
+                    continue;
                 }
-                if (method.getParameterCount() == 1 && action != null) {
-                    return method.invoke(hover, action);
+                try {
+                    if (method.getParameterCount() == 0) {
+                        return method.invoke(hover);
+                    }
+                    if (method.getParameterCount() == 1 && action != null) {
+                        return method.invoke(hover, action);
+                    }
+                } catch (Exception ignored) {
                 }
-            } catch (Exception ignored) {
             }
         }
         for (Field field : hover.getClass().getDeclaredFields()) {
@@ -472,7 +473,7 @@ public final class TextJsonUtil {
             try {
                 field.setAccessible(true);
                 Object value = field.get(hover);
-                if (value instanceof Text) {
+                if (value instanceof Component || value != null) {
                     return value;
                 }
             } catch (Exception ignored) {
@@ -481,9 +482,9 @@ public final class TextJsonUtil {
         return null;
     }
 
-    private static String tryNativeSerializationToJson(Text text) {
+    private static String tryNativeSerializationToJson(Component text) {
         try {
-            Class<?> type = Class.forName("net.minecraft.text.Text$Serialization");
+            Class<?> type = Class.forName("net.minecraft.network.chat.ComponentSerialization");
             for (Method method : type.getMethods()) {
                 if (!Modifier.isStatic(method.getModifiers())) {
                     continue;
@@ -514,9 +515,9 @@ public final class TextJsonUtil {
         return null;
     }
 
-    private static Text tryNativeSerializationFromJson(String json) {
+    private static Component tryNativeSerializationFromJson(String json) {
         try {
-            Class<?> type = Class.forName("net.minecraft.text.Text$Serialization");
+            Class<?> type = Class.forName("net.minecraft.network.chat.ComponentSerialization");
             JsonElement element = JsonParser.parseString(json);
             for (Method method : type.getMethods()) {
                 if (!Modifier.isStatic(method.getModifiers())) {
@@ -545,7 +546,7 @@ public final class TextJsonUtil {
                         result = method.invoke(null, element, lookup);
                     }
                 }
-                if (result instanceof Text text) {
+                if (result instanceof Component text) {
                     return text;
                 }
             }
@@ -554,7 +555,7 @@ public final class TextJsonUtil {
         return null;
     }
 
-    private static String tryCodecToJson(Text text) {
+    private static String tryCodecToJson(Component text) {
         try {
             Object codec = textCodec();
             Object ops = jsonOpsWithRegistries();
@@ -575,7 +576,7 @@ public final class TextJsonUtil {
         return null;
     }
 
-    private static Text tryCodecFromJson(String json) {
+    private static Component tryCodecFromJson(String json) {
         try {
             Object codec = textCodec();
             Object ops = jsonOpsWithRegistries();
@@ -588,27 +589,32 @@ public final class TextJsonUtil {
             }
             Object dataResult = parse.invoke(codec, ops, JsonParser.parseString(json));
             Object result = dataResultResult(dataResult);
-            return result instanceof Text text ? text : null;
+            return result instanceof Component text ? text : null;
         } catch (Exception ignored) {
             return null;
         }
     }
 
     private static Object textCodec() {
-        try {
-            Class<?> type = Class.forName("net.minecraft.text.TextCodecs");
-            for (String name : new String[]{"CODEC", "TEXT_CODEC", "STRINGIFIED_CODEC"}) {
-                try {
-                    Field field = type.getDeclaredField(name);
-                    field.setAccessible(true);
-                    Object value = field.get(null);
-                    if (value != null) {
-                        return value;
+        for (String className : new String[]{
+                "net.minecraft.network.chat.ComponentSerialization",
+                "net.minecraft.text.TextCodecs"
+        }) {
+            try {
+                Class<?> type = Class.forName(className);
+                for (String name : new String[]{"CODEC", "TEXT_CODEC", "STRINGIFIED_CODEC"}) {
+                    try {
+                        Field field = type.getDeclaredField(name);
+                        field.setAccessible(true);
+                        Object value = field.get(null);
+                        if (value != null) {
+                            return value;
+                        }
+                    } catch (Exception ignored) {
                     }
-                } catch (Exception ignored) {
                 }
+            } catch (Exception ignored) {
             }
-        } catch (Exception ignored) {
         }
         return null;
     }
@@ -618,7 +624,7 @@ public final class TextJsonUtil {
         Object lookup = registryLookup();
         if (jsonOps != null && lookup != null) {
             try {
-                Class<?> registryOps = Class.forName("net.minecraft.registry.RegistryOps");
+                Class<?> registryOps = Class.forName("net.minecraft.resources.RegistryOps");
                 for (Method method : registryOps.getMethods()) {
                     if (Modifier.isStatic(method.getModifiers()) && method.getName().equals("of") && method.getParameterCount() == 2) {
                         Class<?>[] params = method.getParameterTypes();
@@ -673,9 +679,9 @@ public final class TextJsonUtil {
 
     private static Object registryLookup() {
         try {
-            MinecraftClient client = MinecraftClient.getInstance();
-            if (client != null && client.world != null) {
-                Object lookup = invokeZeroArg(client.world, "getRegistryManager");
+            Minecraft client = Minecraft.getInstance();
+            if (client != null && client.level != null) {
+                Object lookup = invokeZeroArg(client.level, "getRegistryManager");
                 if (lookup != null) {
                     return lookup;
                 }
@@ -710,16 +716,17 @@ public final class TextJsonUtil {
         return element != null && element.isJsonPrimitive() && element.getAsBoolean();
     }
 
-    private static Object invokeZeroArg(Object target, String name) {
-        if (target == null) {
+    private static Object invokeZeroArg(Object target, String... methodNames) {
+        if (target == null || methodNames == null) {
             return null;
         }
-        for (Method method : target.getClass().getMethods()) {
-            if (method.getName().equals(name) && method.getParameterCount() == 0) {
-                try {
+        for (String methodName : methodNames) {
+            try {
+                Method method = target.getClass().getMethod(methodName);
+                if (method.getParameterCount() == 0) {
                     return method.invoke(target);
-                } catch (Exception ignored) {
                 }
+            } catch (Exception ignored) {
             }
         }
         return null;

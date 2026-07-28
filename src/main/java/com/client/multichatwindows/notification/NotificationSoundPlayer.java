@@ -3,10 +3,9 @@ package com.client.multichatwindows.notification;
 import com.client.multichatwindows.config.ConfigManager;
 import com.client.multichatwindows.config.model.NotificationConfig;
 import javazoom.jl.player.Player;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.sound.PositionedSoundInstance;
-import net.minecraft.sound.SoundEvents;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
+import net.minecraft.sounds.SoundEvents;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
@@ -105,9 +104,9 @@ public final class NotificationSoundPlayer {
     }
 
     private static void playMinecraftFallback(NotificationConfig notification) {
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
         if (client != null) {
-            client.execute(() -> client.getSoundManager().play(PositionedSoundInstance.master(
+            client.execute(() -> client.getSoundManager().play(SimpleSoundInstance.forUI(
                     SoundEvents.UI_BUTTON_CLICK,
                     clamp(notification.pitch, 0.5f, 2.0f)
             )));

@@ -2,65 +2,65 @@ package com.client.multichatwindows.config.ui;
 
 import com.client.multichatwindows.config.ConfigManager;
 import com.client.multichatwindows.config.model.GlobalConfig;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 
 public class ConfigBackgroundScreen extends ScrollableDarkScreen {
     private final Screen parent;
     private GlobalConfig config;
-    private TextFieldWidget pathField;
-    private TextFieldWidget opacityField;
+    private EditBox pathField;
+    private EditBox opacityField;
 
     public ConfigBackgroundScreen(Screen parent) {
-        super(Text.translatable("multichatwindows.config_background.title"));
+        super(Component.translatable("multichatwindows.config_background.title"));
         this.parent = parent;
     }
 
     @Override
     protected void init() {
-        clearChildren();
+        clearWidgets();
         ConfigManager.init();
         config = ConfigManager.global();
         int centerX = width / 2;
         int y = 54;
 
-        addDrawableChild(new DarkButton(centerX - 130, y, 260, 20, Text.translatable(config.configBackgroundEnabled ? "multichatwindows.config_background.on" : "multichatwindows.config_background.off"), () -> {
+        addRenderableWidget(new DarkButton(centerX - 130, y, 260, 20, Component.translatable(config.configBackgroundEnabled ? "multichatwindows.config_background.on" : "multichatwindows.config_background.off"), () -> {
             config.configBackgroundEnabled = !config.configBackgroundEnabled;
             saveAndInvalidate();
             init();
         }));
         y += 30;
 
-        pathField = new TextFieldWidget(textRenderer, centerX - 160, y, 320, 22, Text.translatable("multichatwindows.config_background.path"));
+        pathField = new EditBox(font, centerX - 160, y, 320, 22, Component.translatable("multichatwindows.config_background.path"));
         pathField.setMaxLength(2048);
-        pathField.setText(config.configBackgroundPath == null ? "" : config.configBackgroundPath);
-        pathField.setChangedListener(value -> {
+        pathField.setValue(config.configBackgroundPath == null ? "" : config.configBackgroundPath);
+        pathField.setResponder(value -> {
             config.configBackgroundPath = ConfigManager.normalizeUserPathText(value);
             saveAndInvalidate();
         });
-        addDrawableChild(pathField);
+        addRenderableWidget(pathField);
         y += 30;
 
-        opacityField = new TextFieldWidget(textRenderer, centerX - 160, y, 150, 22, Text.translatable("multichatwindows.config_background.opacity"));
-        opacityField.setText(trimFloat(config.configBackgroundOpacity));
-        opacityField.setChangedListener(value -> {
+        opacityField = new EditBox(font, centerX - 160, y, 150, 22, Component.translatable("multichatwindows.config_background.opacity"));
+        opacityField.setValue(trimFloat(config.configBackgroundOpacity));
+        opacityField.setResponder(value -> {
             config.configBackgroundOpacity = clamp(parseFloat(value, config.configBackgroundOpacity), 0.0f, 1.0f);
             saveAndInvalidate();
         });
-        addDrawableChild(opacityField);
+        addRenderableWidget(opacityField);
 
-        addDrawableChild(new DarkButton(centerX + 10, y, 150, 22, Text.translatable("multichatwindows.config_background.clear"), () -> {
+        addRenderableWidget(new DarkButton(centerX + 10, y, 150, 22, Component.translatable("multichatwindows.config_background.clear"), () -> {
             config.configBackgroundPath = "";
             saveAndInvalidate();
             init();
         }));
 
-        addDrawableChild(new DarkButton(centerX - 130, height - 28, 260, 20, Text.translatable("multichatwindows.back"), () -> {
+        addRenderableWidget(new DarkButton(centerX - 130, height - 28, 260, 20, Component.translatable("multichatwindows.back"), () -> {
             applyFields();
-            MinecraftClient.getInstance().setScreen(parent);
+            com.client.multichatwindows.util.MinecraftGuiAccess.setScreen(parent);
         }));
     }
 
@@ -70,10 +70,10 @@ public class ConfigBackgroundScreen extends ScrollableDarkScreen {
             return;
         }
         if (pathField != null) {
-            config.configBackgroundPath = ConfigManager.normalizeUserPathText(pathField.getText());
+            config.configBackgroundPath = ConfigManager.normalizeUserPathText(pathField.getValue());
         }
         if (opacityField != null) {
-            config.configBackgroundOpacity = clamp(parseFloat(opacityField.getText(), config.configBackgroundOpacity), 0.0f, 1.0f);
+            config.configBackgroundOpacity = clamp(parseFloat(opacityField.getValue(), config.configBackgroundOpacity), 0.0f, 1.0f);
         }
         saveAndInvalidate();
     }
@@ -107,9 +107,9 @@ public class ConfigBackgroundScreen extends ScrollableDarkScreen {
     }
 
     @Override
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        super.render(context, mouseX, mouseY, delta);
-        context.drawCenteredTextWithShadow(textRenderer, Text.translatable("multichatwindows.config_background.title"), width / 2, 14, 0xFFFFFFFF);
-        context.drawCenteredTextWithShadow(textRenderer, Text.translatable("multichatwindows.config_background.hint"), width / 2, 30, 0xFFB0B0B0);
+    public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+        super.extractRenderState(context, mouseX, mouseY, delta);
+        com.client.multichatwindows.util.GuiDrawHelper.centered(context, font, Component.translatable("multichatwindows.config_background.title"), width / 2, 14, 0xFFFFFFFF);
+        com.client.multichatwindows.util.GuiDrawHelper.centered(context, font, Component.translatable("multichatwindows.config_background.hint"), width / 2, 30, 0xFFB0B0B0);
     }
 }

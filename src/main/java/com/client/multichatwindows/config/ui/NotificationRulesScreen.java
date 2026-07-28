@@ -3,10 +3,10 @@ package com.client.multichatwindows.config.ui;
 import com.client.multichatwindows.config.ConfigManager;
 import com.client.multichatwindows.config.model.NotificationConfig;
 import com.client.multichatwindows.config.model.ServerConfig;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 
 public class NotificationRulesScreen extends ScrollableDarkScreen {
     private final Screen parent;
@@ -14,14 +14,14 @@ public class NotificationRulesScreen extends ScrollableDarkScreen {
     private int scrollY = 0;
 
     public NotificationRulesScreen(Screen parent, String serverKey) {
-        super(Text.translatable("multichatwindows.notifications.rules"));
+        super(Component.translatable("multichatwindows.notifications.rules"));
         this.parent = parent;
         this.serverKey = serverKey;
     }
 
     @Override
     protected void init() {
-        clearChildren();
+        clearWidgets();
 
         ServerConfig serverConfig = ConfigManager.getOrCreateServer(serverKey);
         int centerX = width / 2;
@@ -37,11 +37,11 @@ public class NotificationRulesScreen extends ScrollableDarkScreen {
             final int index = i;
 
             if (y + 22 >= top && y <= bottom) {
-                addDrawableChild(new DarkButton(centerX - 150, y, 238, 22, Text.literal(buildLabel(notification)), () ->
-                        MinecraftClient.getInstance().setScreen(new NotificationEditScreen(this, serverKey, index))
+                addRenderableWidget(new DarkButton(centerX - 150, y, 238, 22, Component.literal(buildLabel(notification)), () ->
+                        com.client.multichatwindows.util.MinecraftGuiAccess.setScreen(new NotificationEditScreen(this, serverKey, index))
                 ));
 
-                addDrawableChild(new DarkButton(centerX + 94, y, 56, 22, Text.translatable("multichatwindows.delete"), () -> {
+                addRenderableWidget(new DarkButton(centerX + 94, y, 56, 22, Component.translatable("multichatwindows.delete"), () -> {
                     serverConfig.notifications.remove(index);
                     ConfigManager.saveServer(serverKey, serverConfig);
                     init();
@@ -50,7 +50,7 @@ public class NotificationRulesScreen extends ScrollableDarkScreen {
             y += rowHeight;
         }
 
-        addDrawableChild(new DarkButton(centerX - 130, height - 54, 260, 20, Text.translatable("multichatwindows.notifications.add"), () -> {
+        addRenderableWidget(new DarkButton(centerX - 130, height - 54, 260, 20, Component.translatable("multichatwindows.notifications.add"), () -> {
             NotificationConfig notification = new NotificationConfig();
             notification.id = "n" + System.currentTimeMillis();
             notification.enabled = true;
@@ -59,11 +59,11 @@ public class NotificationRulesScreen extends ScrollableDarkScreen {
             notification.screenDependent = false;
             serverConfig.notifications.add(notification);
             ConfigManager.saveServer(serverKey, serverConfig);
-            MinecraftClient.getInstance().setScreen(new NotificationEditScreen(this, serverKey, serverConfig.notifications.size() - 1));
+            com.client.multichatwindows.util.MinecraftGuiAccess.setScreen(new NotificationEditScreen(this, serverKey, serverConfig.notifications.size() - 1));
         }));
 
-        addDrawableChild(new DarkButton(centerX - 130, height - 28, 260, 20, Text.translatable("multichatwindows.back"), () ->
-                MinecraftClient.getInstance().setScreen(parent)
+        addRenderableWidget(new DarkButton(centerX - 130, height - 28, 260, 20, Component.translatable("multichatwindows.back"), () ->
+                com.client.multichatwindows.util.MinecraftGuiAccess.setScreen(parent)
         ));
     }
 
@@ -71,10 +71,10 @@ public class NotificationRulesScreen extends ScrollableDarkScreen {
         String enabled = notification.enabled ? "✓" : "✗";
         String mode = notification.keyword != null && !notification.keyword.isBlank()
                 ? "\"" + notification.keyword.trim() + "\""
-                : Text.translatable("multichatwindows.notifications.mode.any.short").getString();
+                : Component.translatable("multichatwindows.notifications.mode.any.short").getString();
         String screens = notification.screenDependent
-                ? Text.translatable("multichatwindows.notifications.screens.short").getString()
-                : Text.translatable("multichatwindows.notifications.all_screens.short").getString();
+                ? Component.translatable("multichatwindows.notifications.screens.short").getString()
+                : Component.translatable("multichatwindows.notifications.all_screens.short").getString();
         return enabled + " " + mode + " / " + screens;
     }
 
@@ -86,8 +86,8 @@ public class NotificationRulesScreen extends ScrollableDarkScreen {
     }
 
     @Override
-    public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
-        super.render(ctx, mouseX, mouseY, delta);
-        ctx.drawCenteredTextWithShadow(textRenderer, Text.translatable("multichatwindows.notifications.rules"), width / 2, 14, 0xFFFFFFFF);
+    public void extractRenderState(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
+        super.extractRenderState(ctx, mouseX, mouseY, delta);
+        com.client.multichatwindows.util.GuiDrawHelper.centered(ctx, font, Component.translatable("multichatwindows.notifications.rules"), width / 2, 14, 0xFFFFFFFF);
     }
 }

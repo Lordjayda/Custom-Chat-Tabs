@@ -1,6 +1,7 @@
 package com.client.multichatwindows.hud;
 
 import com.mojang.logging.LogUtils;
+import com.mojang.authlib.GameProfile;
 import com.client.multichatwindows.config.ConfigManager;
 import com.client.multichatwindows.config.model.ChatFilterRule;
 import com.client.multichatwindows.config.model.DependencyRule;
@@ -14,14 +15,11 @@ import com.client.multichatwindows.notification.NotificationSoundPlayer;
 import com.client.multichatwindows.util.DebugLog;
 import com.client.multichatwindows.util.EventLog;
 import com.client.multichatwindows.util.I18nUtil;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ServerInfo;
-import net.minecraft.text.Style;
-import net.minecraft.text.Text;
 import org.slf4j.Logger;
 
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -31,13 +29,20 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ServerData;
+import net.minecraft.network.chat.ChatType;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.PlayerChatMessage;
+import net.minecraft.network.chat.Style;
 
 public final class WindowService {
     private static final Logger MCW_ROUTE_LOGGER = LogUtils.getLogger();
     private static final Map<String, ChatWindow> WINDOWS = new LinkedHashMap<>();
     private static final int DISABLED_BACKLOG_LIMIT = 10000;
-    private static final List<Text> DISABLED_BACKLOG = new ArrayList<>();
-    private static final Set<Text> DISABLED_BACKLOG_IDENTITIES = Collections.newSetFromMap(new IdentityHashMap<>());
+    private static final List<Component> DISABLED_BACKLOG = new ArrayList<>();
+    private static final Set<Component> DISABLED_BACKLOG_IDENTITIES = Collections.newSetFromMap(new IdentityHashMap<>());
+    private static final Set<Component> ROUTED_COMPONENT_IDENTITIES = Collections.newSetFromMap(new IdentityHashMap<>());
     private static String lastServerKey = "";
 
     private WindowService() {
@@ -47,7 +52,7 @@ public final class WindowService {
         return ConfigManager.global().enabled;
     }
 
-    public static void captureWhileDisabled(Text message) {
+    public static void captureWhileDisabled(Component message) {
         if (message == null || isGloballyEnabled()) {
             return;
         }
@@ -66,7 +71,7 @@ public final class WindowService {
     }
 
     public static void importDisabledBacklogAndClearVanillaChat() {
-        List<Text> pending;
+        List<Component> pending;
         synchronized (DISABLED_BACKLOG) {
             if (DISABLED_BACKLOG.isEmpty()) {
                 clearVanillaChatMessages();
@@ -78,7 +83,7 @@ public final class WindowService {
             DISABLED_BACKLOG_IDENTITIES.clear();
         }
 
-        for (Text message : pending) {
+        for (Component message : pending) {
             routeIncoming(message, false);
         }
 
@@ -86,31 +91,11 @@ public final class WindowService {
     }
 
     public static void clearVanillaChatMessages() {
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client == null || client.inGameHud == null || client.inGameHud.getChatHud() == null) {
+        Minecraft client = Minecraft.getInstance();
+        if (client == null) {
             return;
         }
-
-        Object chatHud = client.inGameHud.getChatHud();
-        for (Method method : chatHud.getClass().getDeclaredMethods()) {
-            if (!"clear".equals(method.getName())) {
-                continue;
-            }
-            try {
-                method.setAccessible(true);
-                Class<?>[] parameterTypes = method.getParameterTypes();
-                if (parameterTypes.length == 1 && parameterTypes[0] == boolean.class) {
-                    method.invoke(chatHud, false);
-                    return;
-                }
-                if (parameterTypes.length == 0) {
-                    method.invoke(chatHud);
-                    return;
-                }
-            } catch (ReflectiveOperationException ignored) {
-                // Try the next clear overload.
-            }
-        }
+        com.client.multichatwindows.util.MinecraftGuiAccess.clearChatMessages(false);
     }
 
     public static void trimServerMessagesToLast(String serverKey, int keep) {
@@ -122,7 +107,7 @@ public final class WindowService {
             for (ChatWindow window : WINDOWS.values()) {
                 if (window != null) {
                     window.trimToLastMessages(safeKeep);
-                    saveHistoryForWindow(key, window);
+                    rewriteHistoryFileFromWindow(key, window);
                 }
             }
         }
@@ -130,6 +115,9 @@ public final class WindowService {
         if (serverConfig.tabs != null) {
             for (TabConfig tab : serverConfig.tabs) {
                 if (tab == null || tab.id == null || tab.id.isBlank()) {
+                    continue;
+                }
+                if (key.equals(currentServerKey()) && WINDOWS.containsKey(tab.id)) {
                     continue;
                 }
                 trimHistoryFileToLastMessages(key, tab.id, safeKeep);
@@ -143,12 +131,101 @@ public final class WindowService {
     }
 
     public static String currentServerKey() {
-        MinecraftClient minecraftClient = MinecraftClient.getInstance();
-        ServerInfo serverInfo = minecraftClient.getCurrentServerEntry();
-        if (serverInfo == null) {
-            return "singleplayer";
+        Minecraft minecraftClient = Minecraft.getInstance();
+        if (minecraftClient == null) {
+            return fallbackServerKey("singleplayer");
         }
-        return serverInfo.address == null || serverInfo.address.isBlank() ? "unknown" : serverInfo.address;
+
+        ServerData serverInfo = null;
+        try {
+            serverInfo = minecraftClient.getCurrentServer();
+        } catch (Throwable ignored) {
+        }
+        if (serverInfo == null) {
+            serverInfo = findServerData(minecraftClient);
+        }
+
+        String key = serverAddress(serverInfo);
+        if (key == null || key.isBlank()) {
+            return fallbackServerKey("singleplayer");
+        }
+        return key;
+    }
+
+    private static String fallbackServerKey(String fallback) {
+        if (lastServerKey != null && !lastServerKey.isBlank()
+                && !"singleplayer".equalsIgnoreCase(lastServerKey)
+                && !"unknown".equalsIgnoreCase(lastServerKey)) {
+            return lastServerKey;
+        }
+        try {
+            List<String> servers = ConfigManager.listServers();
+            if (servers != null && servers.size() == 1 && servers.get(0) != null && !servers.get(0).isBlank()) {
+                return servers.get(0);
+            }
+        } catch (Throwable ignored) {
+        }
+        return fallback;
+    }
+
+    private static ServerData findServerData(Object target) {
+        if (target == null) {
+            return null;
+        }
+
+        for (String methodName : new String[]{"getCurrentServer", "getCurrentServerData", "currentServer", "serverData"}) {
+            try {
+                Method method = target.getClass().getMethod(methodName);
+                Object value = method.invoke(target);
+                if (value instanceof ServerData serverData) {
+                    return serverData;
+                }
+            } catch (ReflectiveOperationException | RuntimeException ignored) {
+            }
+        }
+
+        Class<?> type = target.getClass();
+        while (type != null) {
+            for (Field field : type.getDeclaredFields()) {
+                try {
+                    field.setAccessible(true);
+                    Object value = field.get(target);
+                    if (value instanceof ServerData serverData) {
+                        return serverData;
+                    }
+                } catch (ReflectiveOperationException | RuntimeException ignored) {
+                }
+            }
+            type = type.getSuperclass();
+        }
+        return null;
+    }
+
+    private static String serverAddress(ServerData serverInfo) {
+        if (serverInfo == null) {
+            return "";
+        }
+        if (serverInfo.ip != null && !serverInfo.ip.isBlank()) {
+            return serverInfo.ip;
+        }
+        for (String methodName : new String[]{"ip", "address", "getIp", "getAddress"}) {
+            String value = stringFromObjectByMethods(serverInfo, methodName);
+            if (value != null && !value.isBlank()) {
+                return value;
+            }
+        }
+        for (String fieldName : new String[]{"ip", "address", "serverIp", "serverIP"}) {
+            try {
+                Field field = serverInfo.getClass().getDeclaredField(fieldName);
+                field.setAccessible(true);
+                Object value = field.get(serverInfo);
+                if (value instanceof String string && !string.isBlank()) {
+                    return string;
+                }
+            } catch (ReflectiveOperationException | RuntimeException ignored) {
+            }
+        }
+        return "";
     }
 
     public static void ensureForCurrentServer() {
@@ -223,7 +300,7 @@ public final class WindowService {
         }
     }
 
-    public static Text messageAt(double mouseX, double mouseY) {
+    public static Component messageAt(double mouseX, double mouseY) {
         ensureForCurrentServer();
 
         ChatWindow.RowRef row = rowAt(mouseX, mouseY);
@@ -246,7 +323,7 @@ public final class WindowService {
         }
     }
 
-    public static void importExternalMessage(String screenId, Text message) {
+    public static void importExternalMessage(String screenId, Component message) {
         ensureForCurrentServer();
         String serverKey = currentServerKey();
         ServerConfig serverConfig = ConfigManager.getOrCreateServer(serverKey);
@@ -265,16 +342,113 @@ public final class WindowService {
         }
     }
 
-    public static boolean routeIncoming(Text message) {
+    public static boolean routeIncoming(Component message) {
         return routeIncoming(message, false);
     }
 
-    public static boolean routeCommandFeedback(Text message) {
+    public static boolean routeCommandFeedback(Component message) {
         return routeIncoming(message, true);
     }
 
-    public static boolean routeChatHudFeedback(Text message) {
+    public static Component componentFromPlayerChatMessage(PlayerChatMessage message, GameProfile sender, ChatType.Bound bound) {
+        Component fromMessage = componentFromObjectByMethods(message,
+                "decoratedContent",
+                "signedContent",
+                "unsignedContent");
+        if (fromMessage != null) {
+            return fromMessage;
+        }
+
+        String content = stringFromObjectByMethods(message, "signedContent", "content");
+        if (content == null || content.isBlank()) {
+            content = message == null ? "" : String.valueOf(message);
+        }
+
+        String senderName = gameProfileName(sender);
+        if (senderName != null && !senderName.isBlank() && !content.contains(senderName)) {
+            return Component.literal("<" + senderName + "> " + content);
+        }
+        return Component.literal(content);
+    }
+
+    private static String gameProfileName(GameProfile profile) {
+        if (profile == null) {
+            return "";
+        }
+        String name = stringFromObjectByMethods(profile, "name", "getName");
+        return name == null ? "" : name;
+    }
+
+    private static Component componentFromObjectByMethods(Object target, String... methodNames) {
+        if (target == null || methodNames == null) {
+            return null;
+        }
+        for (String methodName : methodNames) {
+            try {
+                Method method = target.getClass().getMethod(methodName);
+                Object value = method.invoke(target);
+                if (value instanceof Component component) {
+                    return component;
+                }
+                if (value instanceof String string && !string.isBlank()) {
+                    return Component.literal(string);
+                }
+            } catch (ReflectiveOperationException ignored) {
+                // Try the next known accessor.
+            }
+        }
+        return null;
+    }
+
+    private static String stringFromObjectByMethods(Object target, String... methodNames) {
+        if (target == null || methodNames == null) {
+            return null;
+        }
+        for (String methodName : methodNames) {
+            try {
+                Method method = target.getClass().getMethod(methodName);
+                Object value = method.invoke(target);
+                if (value instanceof String string) {
+                    return string;
+                }
+                if (value instanceof Component component) {
+                    return component.getString();
+                }
+            } catch (ReflectiveOperationException ignored) {
+                // Try the next known accessor.
+            }
+        }
+        return null;
+    }
+
+    public static boolean routeChatHudFeedback(Component message) {
         return routeIncoming(message, shouldBypassChatFiltersForChatHudFeedback());
+    }
+
+    public static boolean wasAlreadyRouted(Component message) {
+        if (message == null) {
+            return false;
+        }
+        synchronized (ROUTED_COMPONENT_IDENTITIES) {
+            return ROUTED_COMPONENT_IDENTITIES.contains(message);
+        }
+    }
+
+    private static boolean markRoutedComponent(Component message) {
+        if (message == null) {
+            return true;
+        }
+        synchronized (ROUTED_COMPONENT_IDENTITIES) {
+            if (ROUTED_COMPONENT_IDENTITIES.contains(message)) {
+                return false;
+            }
+            ROUTED_COMPONENT_IDENTITIES.add(message);
+            if (ROUTED_COMPONENT_IDENTITIES.size() > 4096) {
+                ROUTED_COMPONENT_IDENTITIES.clear();
+                ROUTED_COMPONENT_IDENTITIES.add(message);
+            }
+            return true;
+        }
     }
 
     private static boolean shouldBypassChatFiltersForChatHudFeedback() {
@@ -300,9 +474,12 @@ public final class WindowService {
         return fromCommand && !fromMessageHandler;
     }
 
-    private static boolean routeIncoming(Text message, boolean bypassChatFilters) {
+    private static boolean routeIncoming(Component message, boolean bypassChatFilters) {
         GlobalConfig globalConfig = ConfigManager.global();
         String plain = message == null ? "" : message.getString();
+        if (message != null && !markRoutedComponent(message)) {
+            return true;
+        }
         if (!globalConfig.enabled) {
             logRouteDecisionToMinecraftLog("tabs: minecraft chat", plain);
             return false;
@@ -317,11 +494,15 @@ public final class WindowService {
         String serverKey = currentServerKey();
         ServerConfig serverConfig = ConfigManager.getOrCreateServer(serverKey);
 
-        if (plain == null || plain.isBlank()) {
-            if (serverConfig.noChatClearing && isRepeatedBlankChatClear(plain)) {
-                logRouteDecisionToMinecraftLog("blocked repeated blank chat clear", plain);
+        if (isChatClearPayload(plain)) {
+            if (serverConfig.noChatClearing) {
+                logRouteDecisionToMinecraftLog("blocked chat clear", plain);
                 return true;
             }
+            return false;
+        }
+
+        if (plain == null || plain.isBlank()) {
             return false;
         }
 
@@ -495,8 +676,8 @@ public final class WindowService {
         return false;
     }
 
-    private static Text withTimestamp(ServerConfig serverConfig, Text message) {
-        Text base = message == null ? Text.empty() : message.copy();
+    private static Component withTimestamp(ServerConfig serverConfig, Component message) {
+        Component base = message == null ? Component.empty() : message.copy();
         String basePlain = base.getString();
         if (basePlain == null || basePlain.isBlank()) {
             return base;
@@ -517,12 +698,59 @@ public final class WindowService {
         }
 
         int color = parseColor(serverConfig.timestampColor == null ? "AAAAAA" : serverConfig.timestampColor);
-        Text timestamp = Text.literal("[" + time + "] ")
-                .styled(style -> style.withColor(color));
+        Component timestamp = Component.literal("[" + time + "] ")
+                .withStyle(style -> style.withColor(color));
 
-        return Text.empty()
+        return Component.empty()
                 .append(timestamp)
                 .append(base);
+    }
+
+    private static boolean isChatClearPayload(String plain) {
+        if (plain == null) {
+            return false;
+        }
+
+        String withoutFormatting = stripMinecraftFormatting(plain);
+        if (withoutFormatting.isBlank()) {
+            return containsLineBreakOrClearEscape(withoutFormatting) || containsLineBreakOrClearEscape(plain);
+        }
+
+        if (isRepeatedBlankChatClear(withoutFormatting)) {
+            return true;
+        }
+
+        String compact = withoutFormatting
+                .replace("\\n", "\n")
+                .replace("\\N", "\n")
+                .replace("/n", "\n")
+                .replace("/N", "\n");
+        if (isRepeatedBlankChatClear(compact)) {
+            return true;
+        }
+
+        String tokenized = withoutFormatting
+                .replaceAll("(?i)(?:\\\\n|/n)", "")
+                .replaceAll("\\s+", "");
+        return withoutFormatting.matches("(?is)^(?:\\s*(?:\\\\n|/n|\\r|\\n)\\s*){2,}$")
+                || tokenized.isEmpty() && containsLineBreakOrClearEscape(withoutFormatting);
+    }
+
+    private static boolean containsLineBreakOrClearEscape(String plain) {
+        if (plain == null) {
+            return false;
+        }
+        return plain.indexOf('\n') >= 0
+                || plain.indexOf('\r') >= 0
+                || plain.toLowerCase().contains("/n")
+                || plain.toLowerCase().contains("\\n");
+    }
+
+    private static String stripMinecraftFormatting(String plain) {
+        if (plain == null || plain.isEmpty()) {
+            return "";
+        }
+        return plain.replaceAll("§[0-9A-FK-ORa-fk-or]", "");
     }
 
     private static boolean isRepeatedBlankChatClear(String plain) {
@@ -554,7 +782,31 @@ public final class WindowService {
             if (window == null || !window.entries.isEmpty()) {
                 continue;
             }
-            window.restoreJsonHistory(readHistoryLines(serverKey, window.id));
+
+            List<String> historyLines = readHistoryLines(serverKey, window.id);
+            window.restoreJsonHistory(historyLines);
+            replayHistoryDebugAndEventLog(serverKey, window, historyLines);
+        }
+    }
+
+    private static void replayHistoryDebugAndEventLog(String serverKey, ChatWindow window, List<String> historyLines) {
+        if (!ConfigManager.global().chatHistoryEnabled || window == null || historyLines == null || historyLines.isEmpty()) {
+            return;
+        }
+
+        for (String json : historyLines) {
+            if (json == null || json.isBlank()) {
+                continue;
+            }
+
+            Component restored = com.client.multichatwindows.util.TextJsonUtil.fromJson(json);
+            String plain = restored == null ? "" : restored.getString();
+            if (plain == null || plain.isBlank()) {
+                continue;
+            }
+
+            DebugLog.write(plain, window.displayName, "history restore");
+            EventLog.log("HISTORY", serverKey, window.id, "history restore", plain);
         }
     }
 
@@ -607,6 +859,36 @@ public final class WindowService {
             if (window != null) {
                 window.markHistoryFullRewriteRequired();
             }
+        }
+    }
+
+    private static void rewriteHistoryFileFromWindow(String serverKey, ChatWindow window) {
+        if (window == null || !ConfigManager.global().chatHistoryEnabled) {
+            return;
+        }
+
+        try {
+            java.nio.file.Path file = historyFile(serverKey, window.id);
+            java.nio.file.Files.createDirectories(file.getParent());
+
+            List<String> encodedLines = new ArrayList<>();
+            for (String line : window.snapshotJsonHistory()) {
+                if (line == null || line.isBlank()) {
+                    continue;
+                }
+                encodedLines.add("A:" + java.util.Base64.getEncoder().encodeToString(line.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+            }
+
+            java.nio.file.Files.write(
+                    file,
+                    encodedLines,
+                    java.nio.charset.StandardCharsets.UTF_8,
+                    java.nio.file.StandardOpenOption.CREATE,
+                    java.nio.file.StandardOpenOption.TRUNCATE_EXISTING,
+                    java.nio.file.StandardOpenOption.WRITE
+            );
+        } catch (Exception ignored) {
+            window.markHistoryFullRewriteRequired();
         }
     }
 
@@ -786,12 +1068,12 @@ public final class WindowService {
             return false;
         }
 
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
         if (client == null) {
             return false;
         }
 
-        switch (style.getClickEvent().getAction()) {
+        switch (style.getClickEvent().action()) {
             case OPEN_URL:
                 return ChatWindow.openUrl(value);
 
@@ -799,11 +1081,11 @@ public final class WindowService {
                 return ChatWindow.openFile(value);
 
             case RUN_COMMAND:
-                if (client.player != null && client.player.networkHandler != null) {
+                if (client.player != null && client.player.connection != null) {
                     if (value.startsWith("/")) {
-                        client.player.networkHandler.sendChatCommand(value.substring(1));
+                        client.player.connection.sendCommand(value.substring(1));
                     } else {
-                        client.player.networkHandler.sendChatMessage(value);
+                        client.player.connection.sendChat(value);
                     }
                     return true;
                 }
@@ -813,14 +1095,11 @@ public final class WindowService {
                 if (suggestionSink != null && suggestionSink.setSuggestion(value)) {
                     return true;
                 }
-                if (client.inGameHud != null && client.inGameHud.getChatHud() != null) {
-                    client.inGameHud.getChatHud().addToMessageHistory(value);
-                    return true;
-                }
-                return false;
+                com.client.multichatwindows.util.MinecraftGuiAccess.addRecentChat(value);
+                return true;
 
             case COPY_TO_CLIPBOARD:
-                client.keyboard.setClipboard(value);
+                client.keyboardHandler.setClipboard(value);
                 return true;
 
             default:
@@ -829,12 +1108,12 @@ public final class WindowService {
     }
 
     private static boolean handleVanillaTextClick(Style style) {
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client == null || client.currentScreen == null || style == null) {
+        Minecraft client = Minecraft.getInstance();
+        if (client == null || com.client.multichatwindows.util.MinecraftGuiAccess.currentScreen() == null || style == null) {
             return false;
         }
 
-        Class<?> type = client.currentScreen.getClass();
+        Class<?> type = com.client.multichatwindows.util.MinecraftGuiAccess.currentScreen().getClass();
         while (type != null) {
             for (java.lang.reflect.Method method : type.getDeclaredMethods()) {
                 if (!method.getName().equals("handleTextClick")) {
@@ -850,7 +1129,7 @@ public final class WindowService {
 
                 try {
                     method.setAccessible(true);
-                    Object result = method.invoke(client.currentScreen, style);
+                    Object result = method.invoke(com.client.multichatwindows.util.MinecraftGuiAccess.currentScreen(), style);
                     return result instanceof Boolean value && value;
                 } catch (Exception ignored) {
                 }
@@ -885,8 +1164,8 @@ public final class WindowService {
     }
 
     private static ChatWindow.RowRef rowAt(double mouseX, double mouseY) {
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client == null || client.textRenderer == null) {
+        Minecraft client = Minecraft.getInstance();
+        if (client == null || client.font == null) {
             return null;
         }
 

@@ -3,29 +3,29 @@ package com.client.multichatwindows.config.ui;
 import com.client.multichatwindows.config.ConfigManager;
 import com.client.multichatwindows.config.model.ServerConfig;
 import com.client.multichatwindows.hud.WindowService;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 
 public class TimestampMenuScreen extends ScrollableDarkScreen {
     private final Screen parent;
     private final String serverKey;
 
     private ServerConfig sc;
-    private TextFieldWidget formatField;
-    private TextFieldWidget colorField;
+    private EditBox formatField;
+    private EditBox colorField;
 
     public TimestampMenuScreen(Screen parent, String serverKey) {
-        super(Text.literal("Timestamp Style"));
+        super(Component.literal("Timestamp Style"));
         this.parent = parent;
         this.serverKey = serverKey;
     }
 
     @Override
     protected void init() {
-        clearChildren();
+        clearWidgets();
         sc = ConfigManager.getOrCreateServer(serverKey);
 
         if (sc.timestampFormat == null || sc.timestampFormat.isBlank()) {
@@ -38,12 +38,12 @@ public class TimestampMenuScreen extends ScrollableDarkScreen {
         int cx = width / 2;
         int y = 50;
 
-        addDrawableChild(new DarkButton(
+        addRenderableWidget(new DarkButton(
                 cx - 100,
                 y,
                 200,
                 20,
-                Text.literal("Timestamps: " + (sc.timestampsEnabled ? "ON" : "OFF")),
+                Component.literal("Timestamps: " + (sc.timestampsEnabled ? "ON" : "OFF")),
                 () -> {
                     sc.timestampsEnabled = !sc.timestampsEnabled;
                     save();
@@ -53,47 +53,47 @@ public class TimestampMenuScreen extends ScrollableDarkScreen {
 
         y += 30;
 
-        formatField = new TextFieldWidget(
-                textRenderer,
+        formatField = new EditBox(
+                font,
                 cx - 100,
                 y,
                 200,
                 20,
-                Text.literal("Timestamp Format")
+                Component.literal("Timestamp Format")
         );
-        formatField.setText(sc.timestampFormat == null ? "HH:mm" : sc.timestampFormat);
-        formatField.setChangedListener(s -> {
+        formatField.setValue(sc.timestampFormat == null ? "HH:mm" : sc.timestampFormat);
+        formatField.setResponder(s -> {
             sc.timestampFormat = s == null || s.isBlank() ? "HH:mm" : s.trim();
             save();
         });
-        addDrawableChild(formatField);
+        addRenderableWidget(formatField);
 
         y += 30;
 
-        colorField = new TextFieldWidget(
-                textRenderer,
+        colorField = new EditBox(
+                font,
                 cx - 100,
                 y,
                 200,
                 20,
-                Text.literal("Timestamp Hex Color")
+                Component.literal("Timestamp Hex Color")
         );
-        colorField.setText(sc.timestampColor == null ? "AAAAAA" : sc.timestampColor);
-        colorField.setChangedListener(s -> {
+        colorField.setValue(sc.timestampColor == null ? "AAAAAA" : sc.timestampColor);
+        colorField.setResponder(s -> {
             sc.timestampColor = sanitizeHex(s);
             save();
         });
-        addDrawableChild(colorField);
+        addRenderableWidget(colorField);
 
         
 
-        addDrawableChild(new DarkButton(
+        addRenderableWidget(new DarkButton(
                 cx - 100,
                 height - 28,
                 200,
                 20,
-                Text.translatable("multichatwindows.back"),
-                () -> MinecraftClient.getInstance().setScreen(parent)
+                Component.translatable("multichatwindows.back"),
+                () -> com.client.multichatwindows.util.MinecraftGuiAccess.setScreen(parent)
         ));
     }
 
@@ -125,20 +125,20 @@ public class TimestampMenuScreen extends ScrollableDarkScreen {
     }
 
     @Override
-    public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
-        super.render(ctx, mouseX, mouseY, delta);
+    public void extractRenderState(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
+        super.extractRenderState(ctx, mouseX, mouseY, delta);
 
-        ctx.drawCenteredTextWithShadow(
-                textRenderer,
-                Text.literal("Timestamp Style"),
+        com.client.multichatwindows.util.GuiDrawHelper.centered(ctx, 
+                font,
+                Component.literal("Timestamp Style"),
                 width / 2,
                 14,
                 0xFFFFFFFF
         );
 
-        ctx.drawCenteredTextWithShadow(
-                textRenderer,
-                Text.literal("Server: " + serverKey),
+        com.client.multichatwindows.util.GuiDrawHelper.centered(ctx, 
+                font,
+                Component.literal("Server: " + serverKey),
                 width / 2,
                 28,
                 0xFFB0B0B0
@@ -155,9 +155,9 @@ public class TimestampMenuScreen extends ScrollableDarkScreen {
         ctx.fill(cx - 105, previewY - 7, cx - 104, previewY + 25, argb);
         ctx.fill(cx + 104, previewY - 7, cx + 105, previewY + 25, argb);
 
-        ctx.drawCenteredTextWithShadow(
-                textRenderer,
-                Text.literal("[15:42] Preview message"),
+        com.client.multichatwindows.util.GuiDrawHelper.centered(ctx, 
+                font,
+                Component.literal("[15:42] Preview message"),
                 cx,
                 previewY + 4,
                 argb

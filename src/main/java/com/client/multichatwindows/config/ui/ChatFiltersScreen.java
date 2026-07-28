@@ -3,11 +3,11 @@ package com.client.multichatwindows.config.ui;
 import com.client.multichatwindows.config.ConfigManager;
 import com.client.multichatwindows.config.model.ChatFilterRule;
 import com.client.multichatwindows.config.model.ServerConfig;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 
 public class ChatFiltersScreen extends ScrollableDarkScreen {
     private final Screen parent;
@@ -17,14 +17,14 @@ public class ChatFiltersScreen extends ScrollableDarkScreen {
     private ServerConfig sc;
 
     public ChatFiltersScreen(Screen parent, String serverKey) {
-        super(Text.translatable("multichatwindows.chatfilters.title"));
+        super(Component.translatable("multichatwindows.chatfilters.title"));
         this.parent = parent;
         this.serverKey = serverKey;
     }
 
     @Override
     protected void init() {
-        clearChildren();
+        clearWidgets();
         sc = ConfigManager.getOrCreateServer(serverKey);
         if (sc.chatFilters == null) sc.chatFilters = new java.util.ArrayList<>();
 
@@ -33,12 +33,12 @@ public class ChatFiltersScreen extends ScrollableDarkScreen {
         int bottom = height - 110;
         int rowH = 24;
 
-        addDrawableChild(new DarkButton(
+        addRenderableWidget(new DarkButton(
                 width - 82,
                 8,
                 34,
                 20,
-                Text.literal("✔"),
+                Component.literal("✔"),
                 () -> {
                     for (ChatFilterRule rule : sc.chatFilters) {
                         if (rule != null) rule.enabled = true;
@@ -48,12 +48,12 @@ public class ChatFiltersScreen extends ScrollableDarkScreen {
                 }
         ));
 
-        addDrawableChild(new DarkButton(
+        addRenderableWidget(new DarkButton(
                 width - 44,
                 8,
                 34,
                 20,
-                Text.literal("❌"),
+                Component.literal("❌"),
                 () -> {
                     for (ChatFilterRule rule : sc.chatFilters) {
                         if (rule != null) rule.enabled = false;
@@ -74,12 +74,12 @@ public class ChatFiltersScreen extends ScrollableDarkScreen {
             final int idx = i;
 
             if (y + 20 >= top && y <= bottom) {
-                addDrawableChild(new DarkButton(
+                addRenderableWidget(new DarkButton(
                         cx - 148,
                         y,
                         34,
                         20,
-                        Text.literal(r.enabled ? "✔" : "❌"),
+                        Component.literal(r.enabled ? "✔" : "❌"),
                         () -> {
                             r.enabled = !r.enabled;
                             ConfigManager.saveServer(serverKey, sc);
@@ -87,12 +87,12 @@ public class ChatFiltersScreen extends ScrollableDarkScreen {
                         }
                 ));
 
-                addDrawableChild(new DarkButton(
+                addRenderableWidget(new DarkButton(
                         cx - 110,
                         y,
                         70,
                         20,
-                        Text.translatable(r.player ? "multichatwindows.dep.player" : "multichatwindows.dep.msg"),
+                        Component.translatable(r.player ? "multichatwindows.dep.player" : "multichatwindows.dep.msg"),
                         () -> {
                             r.player = !r.player;
                             ConfigManager.saveServer(serverKey, sc);
@@ -100,24 +100,24 @@ public class ChatFiltersScreen extends ScrollableDarkScreen {
                         }
                 ));
 
-                TextFieldWidget tf = new TextFieldWidget(
-                        textRenderer,
+                EditBox tf = new EditBox(
+                        font,
                         cx - 35,
                         y,
                         125,
                         20,
-                        Text.translatable("multichatwindows.dep.value")
+                        Component.translatable("multichatwindows.dep.value")
                 );
-                tf.setText(r.value == null ? "" : r.value);
-                tf.setChangedListener(s -> r.value = s);
-                addDrawableChild(tf);
+                tf.setValue(r.value == null ? "" : r.value);
+                tf.setResponder(s -> r.value = s);
+                addRenderableWidget(tf);
 
-                addDrawableChild(new DarkButton(
+                addRenderableWidget(new DarkButton(
                         cx + 94,
                         y,
                         36,
                         20,
-                        Text.translatable("multichatwindows.delete"),
+                        Component.translatable("multichatwindows.delete"),
                         () -> {
                             sc.chatFilters.remove(idx);
                             ConfigManager.saveServer(serverKey, sc);
@@ -129,12 +129,12 @@ public class ChatFiltersScreen extends ScrollableDarkScreen {
             y += rowH;
         }
 
-        addDrawableChild(new DarkButton(
+        addRenderableWidget(new DarkButton(
                 cx - 100,
                 height - 80,
                 200,
                 20,
-                Text.translatable("multichatwindows.chatfilters.add"),
+                Component.translatable("multichatwindows.chatfilters.add"),
                 () -> {
                     ChatFilterRule rule = new ChatFilterRule();
                     rule.enabled = true;
@@ -146,13 +146,13 @@ public class ChatFiltersScreen extends ScrollableDarkScreen {
 
         
 
-        addDrawableChild(new DarkButton(
+        addRenderableWidget(new DarkButton(
                 cx - 100,
                 height - 28,
                 200,
                 20,
-                Text.translatable("multichatwindows.back"),
-                () -> MinecraftClient.getInstance().setScreen(parent)
+                Component.translatable("multichatwindows.back"),
+                () -> com.client.multichatwindows.util.MinecraftGuiAccess.setScreen(parent)
         ));
     }
 
@@ -164,13 +164,13 @@ public class ChatFiltersScreen extends ScrollableDarkScreen {
     }
 
     @Override
-    public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
-        super.render(ctx, mouseX, mouseY, delta);
-        ctx.drawCenteredTextWithShadow(textRenderer,
-                Text.translatable("multichatwindows.chatfilters.title"),
+    public void extractRenderState(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
+        super.extractRenderState(ctx, mouseX, mouseY, delta);
+        com.client.multichatwindows.util.GuiDrawHelper.centered(ctx, font,
+                Component.translatable("multichatwindows.chatfilters.title"),
                 width / 2, 14, 0xFFFFFFFF);
-        ctx.drawCenteredTextWithShadow(textRenderer,
-                Text.literal("✔/❌ top-right = enable/disable all | per row = toggle one filter"),
+        com.client.multichatwindows.util.GuiDrawHelper.centered(ctx, font,
+                Component.literal("✔/❌ top-right = enable/disable all | per row = toggle one filter"),
                 width / 2, 28, 0xFFB0B0B0);
     }
 }

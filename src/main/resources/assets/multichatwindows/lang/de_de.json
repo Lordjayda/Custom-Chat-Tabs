@@ -64,7 +64,7 @@
   "multichatwindows.filter_all.off": "All-Chat filtern: AUS",
   "multichatwindows.edit_position_size": "Realtime-Editor",
   "multichatwindows.pos_size": "x=%d y=%d b=%d h=%d",
-  "multichatwindows.drag_hint": "Ziehen = bewegen | Größe ändern",
+  "multichatwindows.drag_hint": "Ziehen = bewegen | Untere Rechte Ecke=Größe ändern",
   "multichatwindows.all_tab": "Alle",
   "multichatwindows.all_tab.locked": "Dieser Tab ist gesperrt.",
   "multichatwindows.all_tab.nodeps": "Keine Voraussetzungen möglich.",

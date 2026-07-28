@@ -2,15 +2,14 @@ package com.client.multichatwindows.config.ui;
 
 import com.client.multichatwindows.config.ConfigManager;
 import com.client.multichatwindows.config.model.GlobalConfig;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gl.RenderPipelines;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.texture.NativeImage;
-import net.minecraft.client.texture.NativeImageBackedTexture;
-import net.minecraft.client.texture.TextureManager;
-import net.minecraft.util.Identifier;
-
+import com.mojang.blaze3d.platform.NativeImage;
 import javax.imageio.ImageIO;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.renderer.texture.DynamicTexture;
+import net.minecraft.client.renderer.texture.TextureManager;
+import net.minecraft.resources.Identifier;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
@@ -20,7 +19,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public final class ConfigBackgroundRenderer {
-    private static final Identifier TEXTURE_ID = Identifier.of("multichatwindows", "config_background");
+    private static final Identifier TEXTURE_ID = Identifier.fromNamespaceAndPath("multichatwindows", "config_background");
     private static String loadedPath = "";
     private static int textureWidth = 0;
     private static int textureHeight = 0;
@@ -29,7 +28,7 @@ public final class ConfigBackgroundRenderer {
     private ConfigBackgroundRenderer() {
     }
 
-    public static boolean render(DrawContext context, int width, int height) {
+    public static boolean render(GuiGraphicsExtractor context, int width, int height) {
         GlobalConfig config = ConfigManager.global();
         if (config == null || !config.configBackgroundEnabled || config.configBackgroundPath == null || config.configBackgroundPath.isBlank()) {
             return false;
@@ -38,7 +37,7 @@ public final class ConfigBackgroundRenderer {
             return false;
         }
 
-        context.drawTexture(
+        context.blit(
                 RenderPipelines.GUI_TEXTURED,
                 TEXTURE_ID,
                 0,
@@ -96,9 +95,9 @@ public final class ConfigBackgroundRenderer {
             NativeImage image = readNativeImage(imagePath);
             textureWidth = image.getWidth();
             textureHeight = image.getHeight();
-            NativeImageBackedTexture texture = new NativeImageBackedTexture(() -> "multichatwindows_config_background", image);
-            TextureManager textureManager = MinecraftClient.getInstance().getTextureManager();
-            textureManager.registerTexture(TEXTURE_ID, texture);
+            DynamicTexture texture = new DynamicTexture(() -> "multichatwindows_config_background", image);
+            TextureManager textureManager = Minecraft.getInstance().getTextureManager();
+            textureManager.register(TEXTURE_ID, texture);
             texture.upload();
             return true;
         } catch (Throwable ignored) {
